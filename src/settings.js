@@ -3,19 +3,19 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULTS = {
-  collapsedIconSize: 22,
+  collapsedIconSize: 18,
   collapsedGap: 8,
-  collapsedPadX: 16,
-  collapsedHeight: 34,
-  expandedWidth: 460,
-  expandedMaxHeight: 540,
-  cornerRadius: 16,
+  collapsedPadX: 14,
+  collapsedHeight: 30,
+  expandedWidth: 340,
+  expandedMaxHeight: 380,
+  cornerRadius: 14,
   theme: 'dark',
   accent: '#0a84ff',
   fontSize: 12,
   alwaysOnTop: true,
   showOnAllWorkspaces: true,
-  pulseLow: true,
+  pulseLow: false,
   apiBaseUrl: 'http://127.0.0.1:6736',
   apiPollMs: 60000
 };
