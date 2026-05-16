@@ -215,23 +215,56 @@ function buildTrayIcon() {
   return nativeImage.createFromBuffer(buf, { width: size, height: size });
 }
 
+function toggleProvider(id) {
+  const set = new Set(currentSettings.enabledProviders || []);
+  if (set.has(id)) set.delete(id); else set.add(id);
+  currentSettings = { ...currentSettings, enabledProviders: Array.from(set) };
+  saveSettings(currentSettings);
+  sendSettings();
+  sendActive();
+  rebuildTrayMenu();
+}
+
+const TRAY_TOOLS = [
+  { id: 'codex',       name: 'Codex (CLI)' },
+  { id: 'claude',      name: 'Claude Code (CLI)' },
+  { id: 'cursor',      name: 'Cursor' },
+  { id: 'windsurf',    name: 'Windsurf' },
+  { id: 'antigravity', name: 'Antigravity' }
+];
+
+function buildTrayMenu() {
+  const enabled = new Set(currentSettings.enabledProviders || []);
+  return Menu.buildFromTemplate([
+    { label: 'Show / hide notch', click: () => {
+        if (!mainWindow) return;
+        if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.show();
+      }},
+    { label: 'Refresh from OpenUsage', click: () => openusage.fetchAll() },
+    { type: 'separator' },
+    { label: 'Show in notch', enabled: false },
+    ...TRAY_TOOLS.map((t) => ({
+      label: t.name,
+      type: 'checkbox',
+      checked: enabled.has(t.id),
+      click: () => toggleProvider(t.id)
+    })),
+    { type: 'separator' },
+    { label: 'Quit WinUsage', click: () => app.quit() }
+  ]);
+}
+
+function rebuildTrayMenu() {
+  if (!tray) return;
+  tray.setContextMenu(buildTrayMenu());
+}
+
 function createTray() {
   if (tray) return;
   try {
     tray = new Tray(buildTrayIcon());
     tray.setToolTip('WinUsage — AI quota notch');
-    const menu = Menu.buildFromTemplate([
-      { label: 'Show / hide notch', click: () => {
-          if (!mainWindow) return;
-          if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.show();
-        }},
-      { label: 'Refresh from OpenUsage', click: () => openusage.fetchAll() },
-      { type: 'separator' },
-      { label: 'Get OpenUsage (macOS)', click: () => shell.openExternal('https://github.com/robinebers/openusage/releases') },
-      { type: 'separator' },
-      { label: 'Quit WinUsage', click: () => app.quit() }
-    ]);
-    tray.setContextMenu(menu);
+    tray.setContextMenu(buildTrayMenu());
     tray.on('click', () => {
       if (!mainWindow) return;
       if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.show();

@@ -15,7 +15,8 @@ const DEFAULTS = {
   showOnAllWorkspaces: true,
   pulseLow: false,
   apiBaseUrl: 'http://127.0.0.1:6736',
-  apiPollMs: 60000
+  apiPollMs: 60000,
+  enabledProviders: ['codex', 'claude', 'cursor', 'windsurf', 'antigravity']
 };
 
 function settingsPath() {
