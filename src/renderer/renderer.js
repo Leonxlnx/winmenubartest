@@ -234,7 +234,7 @@ function renderProviderCard(p) {
   const head = document.createElement('div');
   head.className = 'pcard-head';
   head.innerHTML = `
-    <div class="pcard-icon">${svgFor(p.providerId)}</div>
+    <div class="pcard-icon" data-id="${escapeHtml(p.providerId)}">${svgFor(p.providerId)}</div>
     <div class="pcard-name">${escapeHtml(p.displayName)}</div>
     ${p.plan ? `<div class="pcard-plan">${escapeHtml(p.plan)}</div>` : ''}
   `;

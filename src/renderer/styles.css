@@ -111,27 +111,27 @@ body.state-expanded .collapsed { display: none; }
 
 .cicon {
   position: relative;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   -webkit-app-region: no-drag;
   cursor: default;
-  transition: transform 240ms var(--ease-out-back), filter 220ms ease;
+  transition: transform 260ms var(--ease-out-back), filter 220ms ease;
 }
 .cicon:hover {
-  transform: translateY(0) scale(1.10);
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+  transform: translateY(0) scale(1.12);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 .cicon:active { transform: scale(0.94); transition-duration: 80ms; }
 
 .cicon .ring {
   position: absolute;
-  inset: -2px;
-  width: calc(100% + 4px);
-  height: calc(100% + 4px);
+  inset: -3px;
+  width: calc(100% + 6px);
+  height: calc(100% + 6px);
   pointer-events: none;
   transform: rotate(-90deg);
 }
@@ -152,8 +152,8 @@ body.state-expanded .collapsed { display: none; }
 
 .cicon .glyph {
   position: relative;
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -166,6 +166,16 @@ body.state-expanded .collapsed { display: none; }
   color: inherit;
   fill: currentColor;
 }
+
+/* Per-provider icon scale tweaks (some logos are dense, others sparse) */
+.cicon[data-id="cursor"] .glyph svg.glyph-svg { transform: scale(1.18); }
+.cicon[data-id="windsurf"] .glyph svg.glyph-svg { transform: scale(1.05); }
+.cicon[data-id="amp"] .glyph svg.glyph-svg { transform: scale(0.92); }
+.cicon[data-id="claude"] .glyph svg.glyph-svg { transform: scale(1.04); }
+.cicon[data-id="codex"] .glyph svg.glyph-svg { transform: scale(1.06); }
+.cicon[data-id="copilot"] .glyph svg.glyph-svg { transform: scale(1.08); }
+.cicon[data-id="gemini"] .glyph svg.glyph-svg { transform: scale(1.04); }
+.cicon[data-id="perplexity"] .glyph svg.glyph-svg { transform: scale(0.94); }
 
 body.pulse-low .cicon.is-low {
   animation: lowpulse 1.6s ease-in-out infinite;
@@ -328,24 +338,45 @@ body.state-expanded .expanded { display: flex; }
 .pcard-head:hover .pcard-name { text-decoration: underline; text-decoration-color: var(--fg-mute); text-underline-offset: 3px; }
 
 .pcard-icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   background: var(--brand, #444);
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  position: relative;
+  overflow: hidden;
+}
+.pcard-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 60%);
+  pointer-events: none;
 }
 .pcard-icon svg.glyph-svg {
-  width: 13px;
-  height: 13px;
+  width: 17px;
+  height: 17px;
   color: #fff;
   fill: currentColor;
   display: block;
+  position: relative;
+  z-index: 1;
 }
+
+/* Card icon per-provider scale tweaks */
+.pcard-icon[data-id="cursor"] svg.glyph-svg { transform: scale(1.15); }
+.pcard-icon[data-id="windsurf"] svg.glyph-svg { transform: scale(1.05); }
+.pcard-icon[data-id="amp"] svg.glyph-svg { transform: scale(0.92); }
+.pcard-icon[data-id="claude"] svg.glyph-svg { transform: scale(1.06); }
+.pcard-icon[data-id="codex"] svg.glyph-svg { transform: scale(1.08); }
+.pcard-icon[data-id="copilot"] svg.glyph-svg { transform: scale(1.10); }
+.pcard-icon[data-id="gemini"] svg.glyph-svg { transform: scale(1.04); }
+.pcard-icon[data-id="perplexity"] svg.glyph-svg { transform: scale(0.92); }
 
 .pcard-name {
   flex: 1;
