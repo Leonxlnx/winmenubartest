@@ -1,39 +1,29 @@
-const { app, BrowserWindow, screen, ipcMain, shell, powerMonitor, globalShortcut, Tray, Menu, nativeImage } = require('electron');
+const {
+  app, BrowserWindow, screen, ipcMain, shell,
+  globalShortcut, Tray, Menu, nativeImage
+} = require('electron');
 const path = require('path');
 const os = require('os');
 const { loadSettings, saveSettings } = require('./settings');
-
-const DEFAULT_BAR_HEIGHT = 36;
-const TOP_OFFSET = 6;
+const tasks = require('./tasks');
 
 let mainWindow = null;
 let tray = null;
 let currentSettings = loadSettings();
+let isExpanded = false;
 
-function computeBarBounds(settings) {
+function computeBounds(settings, expanded) {
   const display = screen.getPrimaryDisplay();
   const sw = display.workAreaSize.width;
-  const width = Math.min(Math.max(settings.width || 720, 320), sw - 20);
-  const height = settings.height || DEFAULT_BAR_HEIGHT;
-  let x;
-  switch (settings.position) {
-    case 'left':
-      x = 12;
-      break;
-    case 'right':
-      x = sw - width - 12;
-      break;
-    case 'center':
-    default:
-      x = Math.round((sw - width) / 2);
-      break;
-  }
-  const y = settings.topOffset != null ? settings.topOffset : TOP_OFFSET;
-  return { x, y, width, height };
+  const w = expanded ? settings.expandedWidth : settings.collapsedWidth;
+  const h = expanded ? settings.expandedMaxHeight : settings.collapsedHeight;
+  const x = Math.round((sw - w) / 2);
+  const y = settings.topOffset != null ? settings.topOffset : 4;
+  return { x, y, width: w, height: h };
 }
 
 function createWindow() {
-  const bounds = computeBarBounds(currentSettings);
+  const bounds = computeBounds(currentSettings, false);
 
   mainWindow = new BrowserWindow({
     ...bounds,
@@ -64,13 +54,12 @@ function createWindow() {
 
   applyWindowFlags();
   mainWindow.setMenuBarVisibility(false);
-  mainWindow.setIgnoreMouseEvents(false);
-
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     mainWindow.webContents.send('settings:loaded', currentSettings);
+    mainWindow.webContents.send('tasks:loaded', tasks.list());
   });
 
   screen.on('display-metrics-changed', () => applyBounds());
@@ -79,8 +68,8 @@ function createWindow() {
 
 function applyBounds() {
   if (!mainWindow) return;
-  const bounds = computeBarBounds(currentSettings);
-  mainWindow.setBounds(bounds);
+  const bounds = computeBounds(currentSettings, isExpanded);
+  mainWindow.setBounds(bounds, true);
 }
 
 function applyWindowFlags() {
@@ -96,60 +85,70 @@ function applyWindowFlags() {
   );
 }
 
+/* ---------- IPC: settings ---------- */
 ipcMain.handle('settings:get', () => currentSettings);
 ipcMain.handle('settings:set', (_e, patch) => {
   currentSettings = { ...currentSettings, ...patch };
   saveSettings(currentSettings);
   applyBounds();
   applyWindowFlags();
-  if (mainWindow) {
-    mainWindow.webContents.send('settings:loaded', currentSettings);
-  }
+  if (mainWindow) mainWindow.webContents.send('settings:loaded', currentSettings);
   return currentSettings;
 });
 ipcMain.handle('settings:reset', () => {
   currentSettings = loadSettings(true);
   saveSettings(currentSettings);
   applyBounds();
-  if (mainWindow) {
-    mainWindow.webContents.send('settings:loaded', currentSettings);
-  }
+  applyWindowFlags();
+  if (mainWindow) mainWindow.webContents.send('settings:loaded', currentSettings);
   return currentSettings;
 });
 
+/* ---------- IPC: expanded state ---------- */
+ipcMain.handle('notch:setExpanded', (_e, expanded) => {
+  isExpanded = !!expanded;
+  applyBounds();
+  return isExpanded;
+});
+
+/* ---------- IPC: tasks ---------- */
+ipcMain.handle('tasks:list', () => tasks.list());
+ipcMain.handle('tasks:add', (_e, t) => tasks.add(t));
+ipcMain.handle('tasks:update', (_e, id, patch) => tasks.update(id, patch));
+ipcMain.handle('tasks:remove', (_e, id) => tasks.remove(id));
+ipcMain.handle('tasks:clearDone', () => tasks.clearDone());
+ipcMain.handle('tasks:openFile', () => shell.openPath(tasks.filePath()));
+
+tasks.onChange((list) => {
+  if (mainWindow) mainWindow.webContents.send('tasks:loaded', list);
+});
+
+/* ---------- IPC: system ---------- */
 ipcMain.handle('system:info', () => ({
   hostname: os.hostname(),
   user: os.userInfo().username,
   platform: process.platform,
-  arch: os.arch(),
   release: os.release(),
-  appVersion: app.getVersion(),
   electronVersion: process.versions.electron,
-  nodeVersion: process.versions.node
-}));
-
-ipcMain.handle('system:power', () => ({
-  onBattery: powerMonitor.isOnBatteryPower ? powerMonitor.isOnBatteryPower() : false,
-  systemIdleTime: powerMonitor.getSystemIdleTime ? powerMonitor.getSystemIdleTime() : 0
+  tasksFile: tasks.filePath()
 }));
 
 ipcMain.handle('app:quit', () => app.quit());
 ipcMain.handle('app:openExternal', (_e, url) => {
   if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
 });
-ipcMain.handle('app:openSettings', () => {
-  shell.openPath('ms-settings:').catch(() => {});
-});
 
+/* ---------- Tray ---------- */
 function buildTrayIcon() {
   const size = 16;
   const buf = Buffer.alloc(size * size * 4);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4;
-      const insideBar = y >= 4 && y <= 7 && x >= 1 && x <= 14;
-      const insidePill = y >= 9 && y <= 12 && x >= 3 && x <= 12;
-      const visible = insideBar || insidePill;
+      const cx = (x - 7.5);
+      const cy = (y - 6);
+      const distSq = (cx * cx) / 36 + (cy * cy) / 9;
+      const visible = distSq <= 1;
       buf[i] = 255;
       buf[i + 1] = 255;
       buf[i + 2] = 255;
@@ -163,17 +162,21 @@ function createTray() {
   if (tray) return;
   try {
     tray = new Tray(buildTrayIcon());
-    tray.setToolTip('WinMenuBar');
+    tray.setToolTip('WinMenuBar — Codex Notch');
     const menu = Menu.buildFromTemplate([
-      { label: 'Show / hide bar', click: () => {
+      { label: 'Show / hide notch', click: () => {
           if (!mainWindow) return;
           if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.show();
         }},
-      { label: 'Open customize', click: () => {
-          if (!mainWindow) return;
-          mainWindow.show();
-          mainWindow.webContents.send('shortcut:settings');
+      { label: 'Add demo task', click: () => {
+          tasks.add({
+            title: 'New task ' + new Date().toLocaleTimeString(),
+            status: 'running',
+            source: 'tray'
+          });
         }},
+      { label: 'Open tasks.json', click: () => shell.openPath(tasks.filePath()) },
+      { label: 'Clear finished tasks', click: () => tasks.clearDone() },
       { type: 'separator' },
       { label: 'Quit WinMenuBar', click: () => app.quit() }
     ]);
@@ -193,10 +196,10 @@ function registerShortcuts() {
     if (mainWindow.isVisible()) mainWindow.hide();
     else mainWindow.show();
   });
-  globalShortcut.register('Control+Alt+,', () => {
+  globalShortcut.register('Control+Alt+T', () => {
     if (!mainWindow) return;
     mainWindow.show();
-    mainWindow.webContents.send('shortcut:settings');
+    mainWindow.webContents.send('notch:toggle');
   });
 }
 
@@ -210,7 +213,9 @@ if (!app.requestSingleInstanceLock()) {
     if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
   });
   app.whenReady().then(() => {
+    tasks.init(app.getPath('userData'));
     createWindow();
     registerShortcuts();
+    createTray();
   });
 }
