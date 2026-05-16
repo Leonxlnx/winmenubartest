@@ -1,31 +1,26 @@
-# WinMenuBar
+# WinUsage Notch
 
-A small, always-on-top, translucent **floating menu bar** that lives in the
-middle of the top of your Windows screen. Inspired by the macOS menu bar but
-built as a compact pill widget so it doesn't steal a whole row of pixels.
+A premium **Dynamic-Island style notch for Windows** that tracks your AI
+coding subscription quotas at a glance. Inspired by
+[OpenUsage](https://openusage.ai/) for macOS, rebuilt as a tiny floating
+notch that lives at the top (or bottom) of your screen.
 
-Built with Electron, fully customizable through a built-in settings panel,
-and your preferences are persisted to disk.
+Codex / Claude / Cursor / Copilot / Gemini / JetBrains / …  — each provider
+gets a brand-colored icon with a progress ring. Click the notch to expand
+into full provider cards showing **session %**, **weekly %**, **plan usage
+in $**, and **time until reset**.
 
 ## Features
 
-- Pill-shaped, blurred, always-on-top floating bar
-- Live clock (12h / 24h, optional seconds)
-- Battery percentage with charging state
-- Wi-Fi / online indicator
-- Spotlight, Control Center, Bluetooth, Volume quick-access buttons
-- Mac-style menus (File / Edit / View / Window / Help) with hover-to-switch dropdowns
-- Built-in **Customize** panel (click the gear) with:
-  - Position: **Left / Center / Right** + top offset
-  - Size: width, height, corner radius, font size
-  - Appearance: **Dark / Light** theme, opacity slider, **accent color picker**
-  - Toggle each widget independently (Logo, App name, Menus, Spotlight, Control
-    Center, Bluetooth, Battery, Wi-Fi, Volume, Clock)
-  - Clock: 12h / 24h, show seconds
-  - Custom app name
-  - Reset all
-- Persisted settings (`%APPDATA%\winmenubartest\winmenubar-settings.json`)
-- Single-instance lock, survives display metric changes
+- **Tiny notch** in the middle of your screen (top or bottom dock)
+- Provider icons with **brand colors** and a **circular progress ring**
+- Color-coded urgency: green → amber → red as you burn through usage
+- **Click to expand** into a full panel with metric bars and reset timers
+- Premium glass background with subtle highlight + drop shadow
+- **JSON-driven**: edit `providers.json` to add any provider — hot reload
+- System tray icon for toggling visibility / dock position
+- Global shortcuts: `Ctrl+Alt+B` show/hide · `Ctrl+Alt+U` expand
+- Persists settings + provider data in `%APPDATA%\winmenubartest\`
 
 ## Run
 
@@ -42,23 +37,65 @@ npm run build
 
 Produces an NSIS installer and a portable `.exe` under `dist/`.
 
+## How to add providers
+
+Open `providers.json` (tray menu → "Open providers.json") and add an entry
+with this shape:
+
+```json
+{
+  "id": "claude",
+  "name": "Claude",
+  "plan": "Max",
+  "color": "#d97757",
+  "iconKey": "claude",
+  "metrics": [
+    {
+      "label": "Session",
+      "percentLeft": 73,
+      "resetsAt": "2026-05-17T08:00:00Z"
+    },
+    {
+      "label": "Plan usage",
+      "dollarsLeft": 167.78,
+      "resetsAt": "2026-05-25T00:00:00Z"
+    }
+  ]
+}
+```
+
+`iconKey` can be one of: `codex`, `claude`, `cursor`, `copilot`, `gemini`,
+`jetbrains`, `windsurf`, `amp`, `factory`, `antigravity`, `perplexity`, or
+falls back to a generic glyph. The file is **hot-reloaded** — any external
+collector (a Python script, a cron job, a browser extension, an LLM agent)
+can append to it and the notch updates within ~80 ms.
+
 ## Architecture
 
-- `src/main.js` — Electron main process. Computes window bounds from settings,
-  creates the borderless transparent always-on-top window, hosts IPC.
-- `src/settings.js` — Defaults + JSON persistence in `userData`.
+- `src/main.js` — Electron main; dynamic window bounds for collapsed
+  (icons row) vs expanded (cards panel); tray + global shortcuts.
+- `src/settings.js` — Defaults + JSON persistence (`<userData>/winmenubar-settings.json`).
+- `src/providers.js` — Provider store + `fs.watch` hot-reload of
+  `<userData>/providers.json`.
 - `src/preload.js` — Context-isolated bridge (`window.winbar`).
-- `src/renderer/index.html` — The bar markup (left / center / right clusters).
-- `src/renderer/styles.css` — Pill shape, blur, CSS variables driven by settings.
-- `src/renderer/renderer.js` — Live clock, battery, dropdowns, settings wiring.
-- `src/renderer/settings-panel.js` — Customize panel: toggles, sliders,
-  segmented controls, color picker, text field.
+- `src/renderer/index.html` — Notch markup (collapsed icons row + expanded cards).
+- `src/renderer/styles.css` — Premium glass, progress rings, brand colors,
+  micro-animations.
+- `src/renderer/icons.js` — Hand-drawn SVG glyphs per provider.
+- `src/renderer/renderer.js` — Render loop, click-to-expand, color status,
+  reset countdowns.
 
 ## Stack
 
 - [Electron](https://www.electronjs.org/)
-- [electron-builder](https://www.electron.build/) (NSIS / portable installer)
-- [koffi](https://koffi.dev/) (kept as a dep for future Windows-native extensions)
+- [electron-builder](https://www.electron.build/)
+- [koffi](https://koffi.dev/) (kept for future Windows-native extensions)
+
+## Credits
+
+Inspired by [OpenUsage by robinebers](https://github.com/robinebers/openusage)
+and the Windows port effort
+[openusage-win by Luciano16-gif](https://github.com/Luciano16-gif/openusage-win).
 
 ## License
 
