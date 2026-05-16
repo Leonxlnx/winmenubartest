@@ -69,20 +69,29 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-function applyBounds(animate = false, duration = 320) {
+function applyBounds(animate = false, duration = 420) {
   if (!mainWindow) return;
   const target = computeBounds(isExpanded);
   if (!animate) {
     mainWindow.setBounds(target);
     return;
   }
-  smoothResize(target, duration);
+  // Bouncy on open (satisfying), quick clean ease on close
+  const ease = isExpanded ? easeOutBack : easeOutQuart;
+  smoothResize(target, duration, ease);
 }
 
-function easeOutQuint(t) { return 1 - Math.pow(1 - t, 5); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-function smoothResize(target, duration = 360) {
+// Apple-feeling spring (subtle overshoot then settle)
+function easeOutBack(t, overshoot = 1.4) {
+  const c1 = overshoot;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+
+function smoothResize(target, duration = 420, ease = easeOutBack) {
   if (!mainWindow) return;
   if (resizeTween) {
     clearTimeout(resizeTween);
@@ -93,7 +102,7 @@ function smoothResize(target, duration = 360) {
   const frame = () => {
     if (!mainWindow) { resizeTween = null; return; }
     const t = Math.min(1, (Date.now() - startTime) / duration);
-    const e = easeOutQuint(t);
+    const e = ease(t);
     mainWindow.setBounds({
       x: Math.round(lerp(start.x, target.x, e)),
       y: Math.round(lerp(start.y, target.y, e)),
@@ -145,7 +154,7 @@ ipcMain.handle('settings:reset', () => {
 
 ipcMain.handle('notch:setExpanded', (_e, expanded) => {
   isExpanded = !!expanded;
-  applyBounds(true, isExpanded ? 420 : 260);
+  applyBounds(true, isExpanded ? 480 : 260);
   return isExpanded;
 });
 
