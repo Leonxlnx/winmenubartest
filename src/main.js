@@ -46,6 +46,7 @@ function createWindow() {
     hasShadow: false,
     thickFrame: false,
     show: false,
+    acceptFirstMouse: true,
     type: 'toolbar',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

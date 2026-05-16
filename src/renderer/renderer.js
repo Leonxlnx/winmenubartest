@@ -294,11 +294,11 @@ function scrollToProvider(id) {
 }
 
 /* ---------- Expand / collapse ---------- */
-async function setExpanded(next) {
+function setExpanded(next) {
   expanded = !!next;
   document.body.classList.toggle('state-expanded', expanded);
   document.body.classList.toggle('state-collapsed', !expanded);
-  await window.winbar?.setExpanded(expanded);
+  window.winbar?.setExpanded(expanded);
 }
 
 document.addEventListener('click', (e) => {
@@ -307,13 +307,24 @@ document.addEventListener('click', (e) => {
   if (!expanded && e.target.closest('#collapsed-view')) setExpanded(true);
 });
 
-/* Click handler: collapsed → expand, expanded outside row → collapse */
-document.addEventListener('click', (e) => {
-  if (!expanded) {
-    if (e.target.closest('#collapsed-view')) setExpanded(true);
-    return;
-  }
+/* ---------- Click handling ---------- */
+const collapsedEl = $('#collapsed-view');
+const expandedEl = $('#expanded-view');
+
+// Use mousedown for instant response, attach directly to elements
+collapsedEl.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  console.log('[click] collapsed view clicked, expanding...');
+  if (!expanded) setExpanded(true);
+});
+
+expandedEl.addEventListener('mousedown', (e) => {
+  // Allow clicks on rows to bubble for dashboard open
   if (e.target.closest('.prow')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  console.log('[click] expanded background clicked, collapsing...');
   setExpanded(false);
 });
 

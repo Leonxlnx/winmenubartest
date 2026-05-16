@@ -65,6 +65,9 @@ html, body {
   pointer-events: none;
   z-index: 0;
 }
+.collapsed, .expanded {
+  pointer-events: auto;
+}
 
 /* ============================================================
    Collapsed: active AI tools row
