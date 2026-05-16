@@ -12,7 +12,9 @@ contextBridge.exposeInMainWorld('winbar', {
   openOpenusageRelease: () => ipcRenderer.invoke('app:openOpenusageRelease'),
   quit: () => ipcRenderer.invoke('app:quit'),
   openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
+  listActive: () => ipcRenderer.invoke('active:list'),
   onSettings: (cb) => { ipcRenderer.on('settings:loaded', (_e, settings) => cb(settings)); },
   onProviders: (cb) => { ipcRenderer.on('providers:loaded', (_e, snap) => cb(snap)); },
+  onActive: (cb) => { ipcRenderer.on('active:loaded', (_e, list) => cb(list)); },
   onNotchToggle: (cb) => { ipcRenderer.on('notch:toggle', () => cb()); }
 });

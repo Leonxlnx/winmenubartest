@@ -6,6 +6,7 @@ const path = require('path');
 const os = require('os');
 const { loadSettings, saveSettings } = require('./settings');
 const openusage = require('./openusage-api');
+const processes = require('./processes');
 
 let mainWindow = null;
 let tray = null;
@@ -63,6 +64,7 @@ function createWindow() {
     mainWindow.show();
     sendSettings();
     sendSnapshot();
+    sendActive();
   });
 
   screen.on('display-metrics-changed', () => applyBounds());
@@ -125,6 +127,7 @@ function applyWindowFlags() {
 }
 function sendSettings() { mainWindow?.webContents.send('settings:loaded', currentSettings); }
 function sendSnapshot() { mainWindow?.webContents.send('providers:loaded', lastSnapshot); }
+function sendActive() { mainWindow?.webContents.send('active:loaded', processes.snapshot()); }
 
 /* ---------- IPC ---------- */
 ipcMain.handle('settings:get', () => currentSettings);
