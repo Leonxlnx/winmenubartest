@@ -280,11 +280,14 @@ document.addEventListener('click', (e) => {
   if (!expanded && e.target.closest('#collapsed-view')) setExpanded(true);
 });
 
-/* Click outside row → collapse */
+/* Click handler: collapsed → expand, expanded outside row → collapse */
 document.addEventListener('click', (e) => {
-  if (!expanded) return;
+  if (!expanded) {
+    if (e.target.closest('#collapsed-view')) setExpanded(true);
+    return;
+  }
   if (e.target.closest('.prow')) return;
-  if (e.target.closest('#expanded-view')) setExpanded(false);
+  setExpanded(false);
 });
 
 document.addEventListener('keydown', (e) => {
