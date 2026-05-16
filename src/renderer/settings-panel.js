@@ -59,6 +59,14 @@ const SECTIONS = [
       { key: 'showSeconds', type: 'toggle', label: 'Show seconds' },
       { key: 'appName', type: 'text', label: 'App name', placeholder: 'WinBar' }
     ]
+  },
+  {
+    title: 'Behavior',
+    fields: [
+      { key: 'alwaysOnTop', type: 'toggle', label: 'Always on top' },
+      { key: 'autoHide', type: 'toggle', label: 'Auto-hide when idle' },
+      { key: 'showOnAllWorkspaces', type: 'toggle', label: 'Show on all desktops' }
+    ]
   }
 ];
 

@@ -205,6 +205,16 @@ body {
 /* Hidden widgets */
 .is-hidden { display: none !important; }
 
+/* Auto-hide idle state */
+body.auto-hide.is-idle .bar {
+  opacity: 0.18;
+  transform: translateY(-50%);
+  transition: opacity 400ms ease, transform 400ms ease;
+}
+body.auto-hide .bar {
+  transition: opacity 250ms ease, transform 250ms ease;
+}
+
 /* ============================================================
    Dropdown panel
    ============================================================ */

@@ -33,8 +33,25 @@ function applySettings(next) {
   const nameEl = $('#app-name-label');
   if (nameEl && settings.appName) nameEl.textContent = settings.appName;
 
+  document.body.classList.toggle('auto-hide', !!settings.autoHide);
+
   updateClock();
 }
+
+/* ---------- Auto-hide (idle fade) ---------- */
+let idleTimer = null;
+function bumpActivity() {
+  if (!settings?.autoHide) return;
+  document.body.classList.remove('is-idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => document.body.classList.add('is-idle'), 1800);
+}
+window.addEventListener('mousemove', bumpActivity);
+window.addEventListener('mouseenter', bumpActivity);
+window.addEventListener('mouseover', bumpActivity);
+window.addEventListener('mouseleave', () => {
+  if (settings?.autoHide) document.body.classList.add('is-idle');
+});
 
 /* ---------- Live clock ---------- */
 const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

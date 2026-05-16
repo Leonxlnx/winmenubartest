@@ -61,8 +61,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
-  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  applyWindowFlags();
   mainWindow.setMenuBarVisibility(false);
   mainWindow.setIgnoreMouseEvents(false);
 
@@ -83,11 +82,25 @@ function applyBounds() {
   mainWindow.setBounds(bounds);
 }
 
+function applyWindowFlags() {
+  if (!mainWindow) return;
+  if (currentSettings.alwaysOnTop) {
+    mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+  } else {
+    mainWindow.setAlwaysOnTop(false);
+  }
+  mainWindow.setVisibleOnAllWorkspaces(
+    !!currentSettings.showOnAllWorkspaces,
+    { visibleOnFullScreen: true }
+  );
+}
+
 ipcMain.handle('settings:get', () => currentSettings);
 ipcMain.handle('settings:set', (_e, patch) => {
   currentSettings = { ...currentSettings, ...patch };
   saveSettings(currentSettings);
   applyBounds();
+  applyWindowFlags();
   if (mainWindow) {
     mainWindow.webContents.send('settings:loaded', currentSettings);
   }

@@ -24,7 +24,10 @@ const DEFAULTS = {
   showClock: true,
   showSeconds: false,
   clockFormat: '24h',
-  appName: 'WinBar'
+  appName: 'WinBar',
+  autoHide: false,
+  alwaysOnTop: true,
+  showOnAllWorkspaces: true
 };
 
 function settingsPath() {
