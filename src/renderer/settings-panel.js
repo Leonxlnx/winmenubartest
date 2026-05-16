@@ -144,7 +144,7 @@ function renderField(field, settings, onChange) {
   }
 }
 
-export function renderSettingsPanel(panelEl, settings, { onChange, onReset, onClose }) {
+function renderSettingsPanel(panelEl, settings, { onChange, onReset, onClose }) {
   panelEl.innerHTML = '';
 
   const header = el('div', { class: 'sp-header' }, [
@@ -167,3 +167,5 @@ export function renderSettingsPanel(panelEl, settings, { onChange, onReset, onCl
     el('button', { class: 'sp-btn sp-btn-primary', onclick: onClose }, 'Done')
   ]));
 }
+
+window.WinBarSettingsPanel = { render: renderSettingsPanel };

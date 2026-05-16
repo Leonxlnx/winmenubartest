@@ -254,10 +254,31 @@ async function handleAction(action) {
   }
 }
 
-/* ---------- Settings panel (filled in next commit) ---------- */
+/* ---------- Settings panel ---------- */
 const settingsPanel = $('#settings-panel');
+
+function rerenderSettingsPanel() {
+  if (!settings || !window.WinBarSettingsPanel) return;
+  window.WinBarSettingsPanel.render(settingsPanel, settings, {
+    onChange: async (key, value) => {
+      await window.winbar?.setSettings({ [key]: value });
+    },
+    onReset: async () => {
+      await window.winbar?.resetSettings();
+    },
+    onClose: () => closeSettings()
+  });
+}
+
 function closeSettings() { settingsPanel.hidden = true; }
-function toggleSettings() { settingsPanel.hidden = !settingsPanel.hidden; }
+function toggleSettings() {
+  if (settingsPanel.hidden) {
+    rerenderSettingsPanel();
+    settingsPanel.hidden = false;
+  } else {
+    closeSettings();
+  }
+}
 
 /* ---------- Click & hover wiring ---------- */
 document.addEventListener('click', (e) => {
