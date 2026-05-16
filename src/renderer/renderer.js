@@ -103,12 +103,12 @@ function fmtProgressRight(line) {
   const pctLeft = percentLeft(line);
   if (fmt.kind === 'currency' || fmt.kind === 'money' || fmt.unit === '$') {
     const left = (line.limit - (line.used ?? 0));
-    return `$${left.toFixed(2)} left`;
+    return `$${left.toFixed(0)} left`;
   }
   if (fmt.kind === 'count' || fmt.kind === 'integer') {
     return `${line.used}/${line.limit}`;
   }
-  return `${pctLeft}% left`;
+  return `${pctLeft}%`;
 }
 
 function fmtReset(iso) {
