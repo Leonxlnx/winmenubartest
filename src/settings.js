@@ -3,13 +3,13 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULTS = {
-  collapsedIconSize: 20,
-  collapsedGap: 4,
-  collapsedPadX: 10,
-  collapsedHeight: 30,
-  expandedWidth: 380,
-  expandedMaxHeight: 480,
-  cornerRadius: 14,
+  collapsedIconSize: 22,
+  collapsedGap: 8,
+  collapsedPadX: 16,
+  collapsedHeight: 34,
+  expandedWidth: 460,
+  expandedMaxHeight: 540,
+  cornerRadius: 16,
   theme: 'dark',
   accent: '#0a84ff',
   fontSize: 12,
