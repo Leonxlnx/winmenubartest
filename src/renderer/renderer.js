@@ -140,15 +140,31 @@ function renderCollapsed() {
   const providers = snapshot.providers || [];
 
   if (!snapshot.ok) {
-    root.innerHTML = `<span class="dot dot-warn"></span><span class="state-text">OpenUsage offline</span>`;
+    root.innerHTML = `<span class="cdot cdot-warn"></span><span class="ctext">OpenUsage offline</span>`;
     return;
   }
   if (snapshot.empty || !providers.length) {
-    root.innerHTML = `<span class="dot dot-mute"></span><span class="state-text">No data yet</span>`;
+    root.innerHTML = `<span class="cdot cdot-mute"></span><span class="ctext">No data yet</span>`;
     return;
   }
 
-  for (const p of providers) root.appendChild(renderCollapsedIcon(p));
+  // Find worst-off provider (lowest % left)
+  let worst = null;
+  let worstPct = 101;
+  for (const p of providers) {
+    const prim = primaryProgress(p);
+    const pct = percentLeft(prim);
+    if (pct != null && pct < worstPct) { worstPct = pct; worst = p; }
+  }
+  const dotClass = worstPct <= 15 ? 'cdot-bad' : worstPct <= 35 ? 'cdot-warn' : 'cdot-ok';
+  const summary = worst
+    ? `${worst.displayName} <span class="cval">${worstPct}%</span>`
+    : `AI Usage <span class="cval">live</span>`;
+
+  root.innerHTML = `
+    <span class="cdot ${dotClass}"></span>
+    <span class="ctext">${summary}</span>
+  `;
 }
 
 function renderCollapsedIcon(p) {

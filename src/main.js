@@ -15,16 +15,10 @@ let lastSnapshot = openusage.snapshot();
 let resizeTween = null;
 
 /* ---------- Window bounds (docked to top edge) ---------- */
-function collapsedWidth() {
-  const s = currentSettings;
-  const count = Math.max(1, (lastSnapshot.providers || []).length);
-  return Math.max(120, s.collapsedPadX * 2 + count * s.collapsedIconSize + (count - 1) * s.collapsedGap);
-}
-
 function computeBounds(expanded) {
   const display = screen.getPrimaryDisplay();
   const work = display.workArea;
-  const w = expanded ? currentSettings.expandedWidth : collapsedWidth();
+  const w = expanded ? currentSettings.expandedWidth : currentSettings.collapsedWidth;
   const h = expanded ? currentSettings.expandedMaxHeight : currentSettings.collapsedHeight;
   const x = work.x + Math.round((work.width - w) / 2);
   const y = work.y;
