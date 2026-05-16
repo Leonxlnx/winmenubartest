@@ -2,17 +2,25 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('winbar', {
   getSystemInfo: () => ipcRenderer.invoke('system:info'),
-  getPowerInfo: () => ipcRenderer.invoke('system:power'),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
   resetSettings: () => ipcRenderer.invoke('settings:reset'),
+  setExpanded: (expanded) => ipcRenderer.invoke('notch:setExpanded', expanded),
+  listTasks: () => ipcRenderer.invoke('tasks:list'),
+  addTask: (t) => ipcRenderer.invoke('tasks:add', t),
+  updateTask: (id, patch) => ipcRenderer.invoke('tasks:update', id, patch),
+  removeTask: (id) => ipcRenderer.invoke('tasks:remove', id),
+  clearDoneTasks: () => ipcRenderer.invoke('tasks:clearDone'),
+  openTasksFile: () => ipcRenderer.invoke('tasks:openFile'),
   quit: () => ipcRenderer.invoke('app:quit'),
   openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
-  openSettings: () => ipcRenderer.invoke('app:openSettings'),
   onSettings: (cb) => {
     ipcRenderer.on('settings:loaded', (_e, settings) => cb(settings));
   },
-  onShortcutSettings: (cb) => {
-    ipcRenderer.on('shortcut:settings', () => cb());
+  onTasks: (cb) => {
+    ipcRenderer.on('tasks:loaded', (_e, list) => cb(list));
+  },
+  onNotchToggle: (cb) => {
+    ipcRenderer.on('notch:toggle', () => cb());
   }
 });
