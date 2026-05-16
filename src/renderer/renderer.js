@@ -36,12 +36,22 @@ async function loadIcon(key) {
   if (iconCache.has(key)) return iconCache.get(key);
   try {
     const txt = await fetch(`icons/${key}.svg`).then((r) => r.text());
-    const inner = txt.replace(/<svg[^>]*>/i, '').replace(/<\/svg>/i, '');
-    iconCache.set(key, inner);
-    return inner;
+    const viewBoxMatch = txt.match(/viewBox\s*=\s*"([^"]+)"/i);
+    const viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 100 100';
+    const inner = txt
+      .replace(/<\?xml[^?]*\?>/gi, '')
+      .replace(/<svg[^>]*>/i, '')
+      .replace(/<\/svg>\s*$/i, '')
+      .replace(/<title>[^<]*<\/title>/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .trim();
+    const data = { viewBox, inner };
+    iconCache.set(key, data);
+    return data;
   } catch {
-    iconCache.set(key, '');
-    return '';
+    const data = { viewBox: '0 0 24 24', inner: '' };
+    iconCache.set(key, data);
+    return data;
   }
 }
 
@@ -51,8 +61,8 @@ async function preloadIcons() {
 }
 
 function svgFor(key) {
-  const inner = iconCache.get(key) || '';
-  return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="glyph-svg" aria-hidden="true">${inner}</svg>`;
+  const data = iconCache.get(key) || { viewBox: '0 0 24 24', inner: '' };
+  return `<svg viewBox="${data.viewBox}" preserveAspectRatio="xMidYMid meet" class="glyph-svg" aria-hidden="true">${data.inner}</svg>`;
 }
 
 /* ---------- Settings ---------- */
