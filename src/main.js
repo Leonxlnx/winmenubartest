@@ -5,41 +5,32 @@ const {
 const path = require('path');
 const os = require('os');
 const { loadSettings, saveSettings } = require('./settings');
-const providers = require('./providers');
+const openusage = require('./openusage-api');
 
 let mainWindow = null;
 let tray = null;
 let currentSettings = loadSettings();
 let isExpanded = false;
-let lastCollapsedWidth = 220;
+let lastSnapshot = openusage.snapshot();
 
-function computeCollapsedWidth(count) {
+/* ---------- Window bounds (docked to top edge) ---------- */
+function collapsedWidth() {
   const s = currentSettings;
-  const w = s.collapsedPadX * 2 + count * s.collapsedIconSize + Math.max(0, count - 1) * s.collapsedGap;
-  return Math.max(120, w);
+  const count = Math.max(1, (lastSnapshot.providers || []).length);
+  return Math.max(120, s.collapsedPadX * 2 + count * s.collapsedIconSize + (count - 1) * s.collapsedGap);
 }
 
 function computeBounds(expanded) {
   const display = screen.getPrimaryDisplay();
   const work = display.workArea;
-  const sw = work.width;
-  const sh = work.height;
-  const swLeft = work.x;
-  const swTop = work.y;
-  const w = expanded ? currentSettings.expandedWidth : lastCollapsedWidth;
+  const w = expanded ? currentSettings.expandedWidth : collapsedWidth();
   const h = expanded ? currentSettings.expandedMaxHeight : currentSettings.collapsedHeight;
-  const x = swLeft + Math.round((sw - w) / 2);
-  let y;
-  if (currentSettings.position === 'bottom') {
-    y = swTop + sh - h - currentSettings.bottomOffset;
-  } else {
-    y = swTop + currentSettings.topOffset;
-  }
+  const x = work.x + Math.round((work.width - w) / 2);
+  const y = work.y;
   return { x, y, width: w, height: h };
 }
 
 function createWindow() {
-  lastCollapsedWidth = computeCollapsedWidth(providers.list().length || 1);
   const bounds = computeBounds(false);
 
   mainWindow = new BrowserWindow({
@@ -75,8 +66,8 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    mainWindow.webContents.send('settings:loaded', currentSettings);
-    mainWindow.webContents.send('providers:loaded', providers.list());
+    sendSettings();
+    sendSnapshot();
   });
 
   screen.on('display-metrics-changed', () => applyBounds());
@@ -87,29 +78,30 @@ function applyBounds() {
   if (!mainWindow) return;
   mainWindow.setBounds(computeBounds(isExpanded), true);
 }
-
 function applyWindowFlags() {
   if (!mainWindow) return;
-  if (currentSettings.alwaysOnTop) {
-    mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
-  } else {
-    mainWindow.setAlwaysOnTop(false);
-  }
-  mainWindow.setVisibleOnAllWorkspaces(
-    !!currentSettings.showOnAllWorkspaces,
-    { visibleOnFullScreen: true }
-  );
+  if (currentSettings.alwaysOnTop) mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+  else mainWindow.setAlwaysOnTop(false);
+  mainWindow.setVisibleOnAllWorkspaces(!!currentSettings.showOnAllWorkspaces, { visibleOnFullScreen: true });
 }
+function sendSettings() { mainWindow?.webContents.send('settings:loaded', currentSettings); }
+function sendSnapshot() { mainWindow?.webContents.send('providers:loaded', lastSnapshot); }
 
-/* ---------- IPC: settings ---------- */
+/* ---------- IPC ---------- */
 ipcMain.handle('settings:get', () => currentSettings);
 ipcMain.handle('settings:set', (_e, patch) => {
   currentSettings = { ...currentSettings, ...patch };
   saveSettings(currentSettings);
-  lastCollapsedWidth = computeCollapsedWidth(providers.list().length || 1);
   applyBounds();
   applyWindowFlags();
-  if (mainWindow) mainWindow.webContents.send('settings:loaded', currentSettings);
+  if (patch.apiBaseUrl || patch.apiPollMs) {
+    openusage.setConfig({
+      baseUrl: currentSettings.apiBaseUrl,
+      intervalMs: currentSettings.apiPollMs
+    });
+    openusage.start();
+  }
+  sendSettings();
   return currentSettings;
 });
 ipcMain.handle('settings:reset', () => {
@@ -117,43 +109,51 @@ ipcMain.handle('settings:reset', () => {
   saveSettings(currentSettings);
   applyBounds();
   applyWindowFlags();
-  if (mainWindow) mainWindow.webContents.send('settings:loaded', currentSettings);
+  sendSettings();
   return currentSettings;
 });
 
-/* ---------- IPC: expanded ---------- */
 ipcMain.handle('notch:setExpanded', (_e, expanded) => {
   isExpanded = !!expanded;
   applyBounds();
   return isExpanded;
 });
 
-/* ---------- IPC: providers ---------- */
-ipcMain.handle('providers:list', () => providers.list());
-ipcMain.handle('providers:upsert', (_e, p) => providers.upsert(p));
-ipcMain.handle('providers:remove', (_e, id) => providers.remove(id));
-ipcMain.handle('providers:reset', () => providers.reset());
-ipcMain.handle('providers:openFile', () => shell.openPath(providers.filePath()));
-
-providers.onChange((list) => {
-  lastCollapsedWidth = computeCollapsedWidth(list.length || 1);
-  if (!isExpanded) applyBounds();
-  if (mainWindow) mainWindow.webContents.send('providers:loaded', list);
+ipcMain.handle('providers:list', () => lastSnapshot);
+ipcMain.handle('providers:refresh', async () => {
+  await openusage.fetchAll();
+  return openusage.snapshot();
+});
+ipcMain.handle('providers:openDashboard', (_e, providerId) => {
+  const map = {
+    codex: 'https://chatgpt.com/codex/settings/usage',
+    claude: 'https://claude.ai/settings/usage',
+    cursor: 'https://cursor.com/dashboard',
+    copilot: 'https://github.com/settings/copilot',
+    gemini: 'https://aistudio.google.com/',
+    perplexity: 'https://perplexity.ai/settings',
+    windsurf: 'https://codeium.com/account',
+    'jetbrains-ai-assistant': 'https://account.jetbrains.com/'
+  };
+  const url = map[providerId];
+  if (url) shell.openExternal(url);
 });
 
-/* ---------- IPC: system ---------- */
 ipcMain.handle('system:info', () => ({
   hostname: os.hostname(),
   user: os.userInfo().username,
   platform: process.platform,
   release: os.release(),
   electronVersion: process.versions.electron,
-  providersFile: providers.filePath()
+  apiBaseUrl: currentSettings.apiBaseUrl
 }));
 
 ipcMain.handle('app:quit', () => app.quit());
 ipcMain.handle('app:openExternal', (_e, url) => {
   if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
+});
+ipcMain.handle('app:openOpenusageRelease', () => {
+  shell.openExternal('https://github.com/robinebers/openusage/releases');
 });
 
 /* ---------- Tray ---------- */
@@ -163,14 +163,10 @@ function buildTrayIcon() {
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4;
-      const cx = (x - 7.5);
-      const cy = (y - 6);
-      const distSq = (cx * cx) / 36 + (cy * cy) / 9;
-      const visible = distSq <= 1;
-      buf[i] = 255;
-      buf[i + 1] = 255;
-      buf[i + 2] = 255;
-      buf[i + 3] = visible ? 230 : 0;
+      const cx = x - 7.5, cy = y - 6;
+      const insideEllipse = (cx * cx) / 36 + (cy * cy) / 9 <= 1;
+      buf[i] = 255; buf[i + 1] = 255; buf[i + 2] = 255;
+      buf[i + 3] = insideEllipse ? 230 : 0;
     }
   }
   return nativeImage.createFromBuffer(buf, { width: size, height: size });
@@ -186,15 +182,9 @@ function createTray() {
           if (!mainWindow) return;
           if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.show();
         }},
-      { label: 'Toggle position (top / bottom)', click: () => {
-          const next = currentSettings.position === 'bottom' ? 'top' : 'bottom';
-          currentSettings = { ...currentSettings, position: next };
-          saveSettings(currentSettings);
-          applyBounds();
-          if (mainWindow) mainWindow.webContents.send('settings:loaded', currentSettings);
-        }},
-      { label: 'Open providers.json', click: () => shell.openPath(providers.filePath()) },
-      { label: 'Reset providers', click: () => providers.reset() },
+      { label: 'Refresh from OpenUsage', click: () => openusage.fetchAll() },
+      { type: 'separator' },
+      { label: 'Get OpenUsage (macOS)', click: () => shell.openExternal('https://github.com/robinebers/openusage/releases') },
       { type: 'separator' },
       { label: 'Quit WinUsage', click: () => app.quit() }
     ]);
@@ -218,9 +208,10 @@ function registerShortcuts() {
     mainWindow.show();
     mainWindow.webContents.send('notch:toggle');
   });
+  globalShortcut.register('Control+Alt+R', () => openusage.fetchAll());
 }
 
-app.on('will-quit', () => globalShortcut.unregisterAll());
+app.on('will-quit', () => { globalShortcut.unregisterAll(); openusage.stop(); });
 app.on('window-all-closed', () => app.quit());
 
 if (!app.requestSingleInstanceLock()) {
@@ -230,7 +221,16 @@ if (!app.requestSingleInstanceLock()) {
     if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
   });
   app.whenReady().then(() => {
-    providers.init(app.getPath('userData'));
+    openusage.setConfig({
+      baseUrl: currentSettings.apiBaseUrl,
+      intervalMs: currentSettings.apiPollMs
+    });
+    openusage.onSnapshot((snap) => {
+      lastSnapshot = snap;
+      if (!isExpanded) applyBounds();
+      sendSnapshot();
+    });
+    openusage.start();
     createWindow();
     registerShortcuts();
     createTray();

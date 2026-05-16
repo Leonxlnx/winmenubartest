@@ -7,13 +7,12 @@ contextBridge.exposeInMainWorld('winbar', {
   resetSettings: () => ipcRenderer.invoke('settings:reset'),
   setExpanded: (expanded) => ipcRenderer.invoke('notch:setExpanded', expanded),
   listProviders: () => ipcRenderer.invoke('providers:list'),
-  upsertProvider: (p) => ipcRenderer.invoke('providers:upsert', p),
-  removeProvider: (id) => ipcRenderer.invoke('providers:remove', id),
-  resetProviders: () => ipcRenderer.invoke('providers:reset'),
-  openProvidersFile: () => ipcRenderer.invoke('providers:openFile'),
+  refreshProviders: () => ipcRenderer.invoke('providers:refresh'),
+  openProviderDashboard: (id) => ipcRenderer.invoke('providers:openDashboard', id),
+  openOpenusageRelease: () => ipcRenderer.invoke('app:openOpenusageRelease'),
   quit: () => ipcRenderer.invoke('app:quit'),
   openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
   onSettings: (cb) => { ipcRenderer.on('settings:loaded', (_e, settings) => cb(settings)); },
-  onProviders: (cb) => { ipcRenderer.on('providers:loaded', (_e, list) => cb(list)); },
+  onProviders: (cb) => { ipcRenderer.on('providers:loaded', (_e, snap) => cb(snap)); },
   onNotchToggle: (cb) => { ipcRenderer.on('notch:toggle', () => cb()); }
 });

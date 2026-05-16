@@ -3,23 +3,21 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULTS = {
-  collapsedIconSize: 22,
-  collapsedGap: 6,
-  collapsedPadX: 12,
-  collapsedHeight: 32,
-  expandedWidth: 360,
-  expandedMaxHeight: 420,
-  position: 'top',
-  topOffset: 6,
-  bottomOffset: 8,
-  cornerRadius: 16,
+  collapsedIconSize: 20,
+  collapsedGap: 4,
+  collapsedPadX: 10,
+  collapsedHeight: 30,
+  expandedWidth: 380,
+  expandedMaxHeight: 480,
+  cornerRadius: 14,
   theme: 'dark',
   accent: '#0a84ff',
   fontSize: 12,
   alwaysOnTop: true,
   showOnAllWorkspaces: true,
-  showLabels: false,
-  pulseLow: true
+  pulseLow: true,
+  apiBaseUrl: 'http://127.0.0.1:6736',
+  apiPollMs: 60000
 };
 
 function settingsPath() {
