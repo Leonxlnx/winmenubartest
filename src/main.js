@@ -156,7 +156,7 @@ ipcMain.handle('settings:reset', () => {
 
 ipcMain.handle('notch:setExpanded', (_e, expanded) => {
   isExpanded = !!expanded;
-  applyBounds();
+  applyBounds(true, isExpanded ? 360 : 280);
   return isExpanded;
 });
 
