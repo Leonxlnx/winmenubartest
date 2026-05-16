@@ -236,17 +236,20 @@ function renderProviderRow(p) {
 
   const primary = primaryProgress(p);
   const pct = percentLeft(primary);
-  const usedPct = pct != null ? 100 - pct : 0;
   const isLow = pct != null && pct <= 15;
   const isWarn = pct != null && pct > 15 && pct <= 35;
-  const fillClass = isLow ? 'is-low' : isWarn ? 'is-warn' : '';
+  const valClass = isLow ? 'is-low' : isWarn ? 'is-warn' : '';
   const valText = primary ? fmtProgressRight(primary) : '—';
+  const label = primary?.label || '';
+  const reset = primary?.resetsAt ? fmtReset(primary.resetsAt) : '';
 
   row.innerHTML = `
     <div class="prow-icon" data-id="${escapeHtml(p.providerId)}">${svgFor(p.providerId)}</div>
-    <div class="prow-name">${escapeHtml(p.displayName)}</div>
-    <div class="prow-bar"><div class="prow-fill ${fillClass}" style="width: ${usedPct}%"></div></div>
-    <div class="prow-val">${escapeHtml(valText)}</div>
+    <div class="prow-main">
+      <div class="prow-name">${escapeHtml(p.displayName)}</div>
+      <div class="prow-sub">${label ? escapeHtml(label) : ''}${reset ? `<span class="prow-dot">·</span>${escapeHtml(reset)} left` : ''}</div>
+    </div>
+    <div class="prow-val ${valClass}">${escapeHtml(valText)}</div>
   `;
   row.addEventListener('click', () => window.winbar?.openProviderDashboard(p.providerId));
   return row;
