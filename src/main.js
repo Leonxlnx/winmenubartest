@@ -12,6 +12,7 @@ let tray = null;
 let currentSettings = loadSettings();
 let isExpanded = false;
 let lastSnapshot = openusage.snapshot();
+let resizeTween = null;
 
 /* ---------- Window bounds (docked to top edge) ---------- */
 function collapsedWidth() {
@@ -74,9 +75,49 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-function applyBounds() {
+function applyBounds(animate = false, duration = 320) {
   if (!mainWindow) return;
-  mainWindow.setBounds(computeBounds(isExpanded), true);
+  const target = computeBounds(isExpanded);
+  if (!animate) {
+    mainWindow.setBounds(target);
+    return;
+  }
+  smoothResize(target, duration);
+}
+
+function easeOutExpo(t) {
+  return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function smoothResize(target, duration = 320) {
+  if (!mainWindow) return;
+  if (resizeTween) {
+    clearInterval(resizeTween);
+    resizeTween = null;
+  }
+  const start = mainWindow.getBounds();
+  const startTime = Date.now();
+  resizeTween = setInterval(() => {
+    if (!mainWindow) {
+      clearInterval(resizeTween);
+      resizeTween = null;
+      return;
+    }
+    const t = Math.min(1, (Date.now() - startTime) / duration);
+    const e = easeOutExpo(t);
+    mainWindow.setBounds({
+      x: Math.round(lerp(start.x, target.x, e)),
+      y: Math.round(lerp(start.y, target.y, e)),
+      width: Math.round(lerp(start.width, target.width, e)),
+      height: Math.round(lerp(start.height, target.height, e))
+    });
+    if (t >= 1) {
+      clearInterval(resizeTween);
+      resizeTween = null;
+    }
+  }, 1000 / 60);
 }
 function applyWindowFlags() {
   if (!mainWindow) return;
