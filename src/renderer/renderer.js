@@ -211,6 +211,7 @@ function setStatusBadge() {
   const el = $('#head-status');
   if (!el) return;
   if (!snapshot.ok) { el.textContent = 'offline'; el.className = 'head-status is-bad'; return; }
+  if (snapshot.demo) { el.textContent = 'demo'; el.className = 'head-status is-mute'; return; }
   if (snapshot.empty) { el.textContent = 'no data'; el.className = 'head-status is-mute'; return; }
   const at = snapshot.fetchedAt ? new Date(snapshot.fetchedAt) : null;
   el.textContent = at ? `updated ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'live';
