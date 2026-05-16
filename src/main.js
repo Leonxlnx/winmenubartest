@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, ipcMain, shell, powerMonitor } = require('electron');
+const { app, BrowserWindow, screen, ipcMain, shell, powerMonitor, globalShortcut } = require('electron');
 const path = require('path');
 const os = require('os');
 const { loadSettings, saveSettings } = require('./settings');
@@ -127,6 +127,20 @@ ipcMain.handle('app:openSettings', () => {
   shell.openPath('ms-settings:').catch(() => {});
 });
 
+function registerShortcuts() {
+  globalShortcut.register('Control+Alt+B', () => {
+    if (!mainWindow) return;
+    if (mainWindow.isVisible()) mainWindow.hide();
+    else mainWindow.show();
+  });
+  globalShortcut.register('Control+Alt+,', () => {
+    if (!mainWindow) return;
+    mainWindow.show();
+    mainWindow.webContents.send('shortcut:settings');
+  });
+}
+
+app.on('will-quit', () => globalShortcut.unregisterAll());
 app.on('window-all-closed', () => app.quit());
 
 if (!app.requestSingleInstanceLock()) {
@@ -135,5 +149,8 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => {
     if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
   });
-  app.whenReady().then(createWindow);
+  app.whenReady().then(() => {
+    createWindow();
+    registerShortcuts();
+  });
 }

@@ -316,3 +316,4 @@ window.addEventListener('blur', () => { closeMenu(); });
 })();
 
 window.winbar?.onSettings((next) => applySettings(next));
+window.winbar?.onShortcutSettings(() => toggleSettings());

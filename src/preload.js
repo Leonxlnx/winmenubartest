@@ -11,5 +11,8 @@ contextBridge.exposeInMainWorld('winbar', {
   openSettings: () => ipcRenderer.invoke('app:openSettings'),
   onSettings: (cb) => {
     ipcRenderer.on('settings:loaded', (_e, settings) => cb(settings));
+  },
+  onShortcutSettings: (cb) => {
+    ipcRenderer.on('shortcut:settings', () => cb());
   }
 });
