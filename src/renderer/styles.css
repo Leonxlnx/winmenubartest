@@ -48,7 +48,6 @@ html, body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  -webkit-app-region: drag;
 }
 
 .notch-bg {
@@ -77,7 +76,8 @@ html, body {
   align-items: center;
   justify-content: center;
   height: 100%;
-  -webkit-app-region: drag;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
   animation: collapsed-fade 240ms var(--ease-out);
 }
 body.state-expanded .collapsed { display: none; }

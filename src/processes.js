@@ -6,55 +6,87 @@
 
 const { exec } = require('child_process');
 
-const DEFAULT_POLL = 6000;
+const DEFAULT_POLL = 4000;
 
-// process name patterns → providerId
+// process name patterns → providerId.
+// `kind`: 'cli' = process only exists while a task runs (presence == active)
+//        'gui' = always-on app, requires CPU-spike detection to count as active
 const PATTERNS = [
-  { id: 'cursor',                name: 'Cursor',      patterns: [/^cursor(\.exe)?$/i] },
-  { id: 'codex',                 name: 'Codex',       patterns: [/^codex(\.exe)?$/i] },
-  { id: 'antigravity',           name: 'Antigravity', patterns: [/^antigravity(\.exe)?$/i] },
-  { id: 'copilot',               name: 'Copilot',     patterns: [/^m365copilot(\.exe)?$/i, /^copilot(\.exe)?$/i] },
-  { id: 'windsurf',              name: 'Windsurf',    patterns: [/^windsurf(\.exe)?$/i, /^codeium(\.exe)?$/i] },
-  { id: 'claude',                name: 'Claude',      patterns: [/^claude(\.exe)?$/i, /^anthropic(\.exe)?$/i] },
-  { id: 'gemini',                name: 'Gemini',      patterns: [/^gemini(\.exe)?$/i] },
-  { id: 'jetbrains-ai-assistant',name: 'JetBrains',   patterns: [/^idea64(\.exe)?$/i, /^webstorm64(\.exe)?$/i, /^pycharm64(\.exe)?$/i, /^rider64(\.exe)?$/i] },
-  { id: 'kimi',                  name: 'Kimi',        patterns: [/^kimi(\.exe)?$/i] },
-  { id: 'perplexity',            name: 'Perplexity',  patterns: [/^perplexity(\.exe)?$/i] }
+  { id: 'codex',       name: 'Codex',       kind: 'cli', patterns: [/^codex(\.exe)?$/i] },
+  { id: 'claude',      name: 'Claude Code', kind: 'cli', patterns: [/^claude(\.exe)?$/i] },
+  { id: 'cursor',      name: 'Cursor',      kind: 'gui', patterns: [/^cursor(\.exe)?$/i] },
+  { id: 'windsurf',    name: 'Windsurf',    kind: 'gui', patterns: [/^windsurf(\.exe)?$/i] },
+  { id: 'antigravity', name: 'Antigravity', kind: 'gui', patterns: [/^antigravity(\.exe)?$/i] }
 ];
 
 let timer = null;
 let listeners = new Set();
 let lastActive = [];
+// pid -> { name, cpuTime (in 100ns ticks total), ts (epoch ms) }
+let prevCpu = new Map();
+const CPU_ACTIVE_THRESHOLD_PCT = 4;
 
-function listProcessNames() {
+function listProcessesWithCpu() {
   return new Promise((resolve) => {
-    exec('tasklist /fo csv /nh', { maxBuffer: 8 * 1024 * 1024, windowsHide: true }, (err, stdout) => {
-      if (err || !stdout) return resolve([]);
-      const names = new Set();
-      for (const line of stdout.split(/\r?\n/)) {
-        const m = line.match(/^"([^"]+)"/);
-        if (m) names.add(m[1]);
-      }
-      resolve(Array.from(names));
-    });
+    // PowerShell: Name, Id, CPU (total seconds of CPU time)
+    const ps = `Get-Process | Select-Object Name, Id, CPU | ConvertTo-Json -Compress`;
+    exec(`powershell -NoProfile -NonInteractive -Command "${ps}"`,
+      { maxBuffer: 16 * 1024 * 1024, windowsHide: true },
+      (err, stdout) => {
+        if (err || !stdout) return resolve([]);
+        try {
+          const arr = JSON.parse(stdout);
+          resolve(Array.isArray(arr) ? arr : [arr]);
+        } catch { resolve([]); }
+      });
   });
 }
 
-async function detect() {
-  const names = await listProcessNames();
-  const active = [];
+function findProvider(processName) {
   for (const provider of PATTERNS) {
-    if (names.some((n) => provider.patterns.some((p) => p.test(n)))) {
-      active.push({ id: provider.id, name: provider.name });
+    if (provider.patterns.some((p) => p.test(processName))) return provider;
+  }
+  return null;
+}
+
+async function detect() {
+  const procs = await listProcessesWithCpu();
+  const now = Date.now();
+  const nextCpu = new Map();
+  const byProvider = new Map();
+
+  for (const p of procs) {
+    const provider = findProvider(p.Name);
+    if (!provider) continue;
+    const cpu = typeof p.CPU === 'number' ? p.CPU : 0;
+    nextCpu.set(p.Id, { name: p.Name, cpuSec: cpu, ts: now });
+
+    let activeNow;
+    if (provider.kind === 'cli') {
+      activeNow = true;
+    } else {
+      const prev = prevCpu.get(p.Id);
+      if (!prev) {
+        activeNow = false; // need a baseline first
+      } else {
+        const dtSec = (now - prev.ts) / 1000;
+        const deltaCpu = cpu - prev.cpuSec;
+        const cpuPct = dtSec > 0 ? (deltaCpu / dtSec) * 100 : 0;
+        activeNow = cpuPct >= CPU_ACTIVE_THRESHOLD_PCT;
+      }
+    }
+
+    const existing = byProvider.get(provider.id);
+    if (!existing) {
+      byProvider.set(provider.id, { ...provider, active: activeNow });
+    } else if (activeNow) {
+      existing.active = true;
     }
   }
-  // dedupe by id
-  const seen = new Set();
-  lastActive = active.filter((a) => {
-    if (seen.has(a.id)) return false;
-    seen.add(a.id);
-    return true;
-  });
+
+  prevCpu = nextCpu;
+  // Only emit providers that are *actually active right now*
+  lastActive = Array.from(byProvider.values()).filter((p) => p.active);
   for (const cb of listeners) {
     try { cb(lastActive); } catch (e) { console.error(e); }
   }
