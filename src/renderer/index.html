@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'" />
   <title>WinUsage</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -10,19 +10,22 @@
   <div class="notch" id="notch">
     <div class="notch-bg"></div>
 
-    <!-- Collapsed view: row of provider icons with progress rings -->
+    <!-- Collapsed: row of provider icons -->
     <div class="collapsed" id="collapsed-view"></div>
 
-    <!-- Expanded view -->
+    <!-- Expanded: provider cards -->
     <div class="expanded" id="expanded-view">
       <header class="head">
-        <strong class="head-title">AI Usage</strong>
+        <div class="head-left">
+          <span class="head-title">AI Usage</span>
+          <span class="head-status" id="head-status"></span>
+        </div>
         <div class="head-actions">
-          <button class="head-btn" id="btn-open-file" title="Open providers.json" aria-label="Open file">
-            <svg viewBox="0 0 24 24" class="ic"><path d="M4 6h10l2 3h4v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <button class="head-btn" id="btn-refresh" title="Refresh" aria-label="Refresh">
+            <svg viewBox="0 0 24 24" class="ic"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 4v6h-6l2.3-2.3A6 6 0 1 0 18 12" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <button class="head-btn" id="btn-position" title="Toggle dock position" aria-label="Position">
-            <svg viewBox="0 0 24 24" class="ic"><rect x="3" y="4" width="18" height="3.5" rx="1.5" fill="currentColor"/><rect x="3" y="16.5" width="18" height="3.5" rx="1.5" fill="currentColor" opacity="0.45"/></svg>
+          <button class="head-btn" id="btn-openusage" title="Get OpenUsage" aria-label="OpenUsage">
+            <svg viewBox="0 0 24 24" class="ic"><path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
           </button>
           <button class="head-btn" id="btn-collapse" title="Collapse" aria-label="Collapse">
             <svg viewBox="0 0 24 24" class="ic"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
@@ -33,13 +36,12 @@
       <div class="provider-list" id="provider-list"></div>
 
       <footer class="foot">
-        <span class="foot-version">WinUsage 0.1</span>
-        <span class="foot-hint" id="foot-hint">Edit providers.json to add more</span>
+        <span class="foot-version">WinUsage 0.2</span>
+        <span class="foot-source" id="foot-source">source: <span id="foot-source-name">openusage @ 127.0.0.1:6736</span></span>
       </footer>
     </div>
   </div>
 
-  <script src="icons.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

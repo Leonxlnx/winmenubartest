@@ -1,34 +1,59 @@
 /* ============================================================
-   WinUsage renderer
+   WinUsage renderer — OpenUsage HTTP API shape
    ============================================================ */
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
 
 let settings = null;
-let providers = [];
+let snapshot = { ok: true, providers: [], empty: true };
 let expanded = false;
+let brandMap = {};
+const iconCache = new Map();
 
 /* ---------- Boot ---------- */
 (async () => {
+  brandMap = await fetch('icons/brand.json').then((r) => r.json()).catch(() => ({}));
   settings = await window.winbar?.getSettings();
   if (settings) applySettings(settings);
-  providers = (await window.winbar?.listProviders()) || [];
+  snapshot = (await window.winbar?.listProviders()) || snapshot;
+  await preloadIcons();
   renderAll();
-
-  const info = await window.winbar?.getSystemInfo();
-  const hint = $('#foot-hint');
-  if (hint && info?.providersFile) {
-    hint.textContent = `Edit ${info.providersFile.split(/[\\/]/).pop()} to add more`;
-    hint.title = info.providersFile;
-  }
 })();
 
 window.winbar?.onSettings((next) => { settings = next; applySettings(next); renderAll(); });
-window.winbar?.onProviders((list) => { providers = list || []; renderAll(); });
+window.winbar?.onProviders(async (snap) => {
+  snapshot = snap || snapshot;
+  await preloadIcons();
+  renderAll();
+});
 window.winbar?.onNotchToggle(() => setExpanded(!expanded));
 
-setInterval(renderAll, 30 * 1000);
+setInterval(() => { if (expanded) renderExpanded(); }, 30 * 1000);
+
+/* ---------- Icon loading ---------- */
+async function loadIcon(key) {
+  if (iconCache.has(key)) return iconCache.get(key);
+  try {
+    const txt = await fetch(`icons/${key}.svg`).then((r) => r.text());
+    const inner = txt.replace(/<svg[^>]*>/i, '').replace(/<\/svg>/i, '');
+    iconCache.set(key, inner);
+    return inner;
+  } catch {
+    iconCache.set(key, '');
+    return '';
+  }
+}
+
+async function preloadIcons() {
+  const keys = new Set((snapshot.providers || []).map((p) => p.providerId));
+  await Promise.all(Array.from(keys).map(loadIcon));
+}
+
+function svgFor(key) {
+  const inner = iconCache.get(key) || '';
+  return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" class="glyph-svg" aria-hidden="true">${inner}</svg>`;
+}
 
 /* ---------- Settings ---------- */
 function applySettings(s) {
@@ -41,19 +66,39 @@ function applySettings(s) {
   root.style.setProperty('--font-size', `${s.fontSize}px`);
 }
 
-/* ---------- Helpers ---------- */
-function avgPercent(p) {
-  const pcts = p.metrics.map((m) => m.percentLeft).filter((x) => typeof x === 'number');
-  if (!pcts.length) return null;
-  return Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+/* ---------- Metric helpers ---------- */
+function primaryProgress(p) {
+  return (p.lines || []).find((l) => l && l.type === 'progress' && typeof l.used === 'number' && typeof l.limit === 'number' && l.limit > 0);
+}
+
+function percentLeft(line) {
+  if (!line || !line.limit) return null;
+  const used = line.used ?? 0;
+  return Math.max(0, Math.min(100, Math.round(100 - (used / line.limit) * 100)));
 }
 
 function statusFor(p) {
-  const a = avgPercent(p);
-  if (a == null) return 'ok';
-  if (a <= 15) return 'low';
-  if (a <= 35) return 'warn';
+  const primary = primaryProgress(p);
+  const pct = percentLeft(primary);
+  if (pct == null) return 'ok';
+  if (pct <= 15) return 'low';
+  if (pct <= 35) return 'warn';
   return 'ok';
+}
+
+function fmtProgressRight(line) {
+  if (!line) return '';
+  if (line.limit == null) return `${line.used}`;
+  const fmt = line.format || { kind: 'percent' };
+  const pctLeft = percentLeft(line);
+  if (fmt.kind === 'currency' || fmt.kind === 'money' || fmt.unit === '$') {
+    const left = (line.limit - (line.used ?? 0));
+    return `$${left.toFixed(2)} left`;
+  }
+  if (fmt.kind === 'count' || fmt.kind === 'integer') {
+    return `${line.used}/${line.limit}`;
+  }
+  return `${pctLeft}% left`;
 }
 
 function fmtReset(iso) {
@@ -68,16 +113,8 @@ function fmtReset(iso) {
   return `${d}d ${h % 24}h`;
 }
 
-function fmtMetricRight(m) {
-  if (typeof m.percentLeft === 'number') return `${m.percentLeft}% left`;
-  if (typeof m.dollarsLeft === 'number') return `$${m.dollarsLeft.toFixed(2)} left`;
-  if (m.note) return m.note;
-  return '';
-}
-
-function svgIcon(iconKey) {
-  const inner = window.WinUsageIcons?.iconFor(iconKey) || '';
-  return `<svg viewBox="0 0 24 24" class="glyph-svg" aria-hidden="true">${inner}</svg>`;
+function brandFor(id) {
+  return brandMap[id] || { name: id, color: '#7d7d80' };
 }
 
 /* ---------- Render ---------- */
@@ -89,27 +126,32 @@ function renderAll() {
 function renderCollapsed() {
   const root = $('#collapsed-view');
   root.innerHTML = '';
-  if (!providers.length) {
-    const empty = document.createElement('span');
-    empty.className = 'cicon-tooltip';
-    empty.textContent = 'No providers';
-    root.appendChild(empty);
+
+  const providers = snapshot.providers || [];
+
+  if (!snapshot.ok) {
+    root.innerHTML = `<span class="dot dot-warn"></span><span class="state-text">OpenUsage offline</span>`;
     return;
   }
-  for (const p of providers) {
-    root.appendChild(renderCollapsedIcon(p));
+  if (snapshot.empty || !providers.length) {
+    root.innerHTML = `<span class="dot dot-mute"></span><span class="state-text">No data yet</span>`;
+    return;
   }
+
+  for (const p of providers) root.appendChild(renderCollapsedIcon(p));
 }
 
 function renderCollapsedIcon(p) {
-  const pct = avgPercent(p);
+  const brand = brandFor(p.providerId);
+  const primary = primaryProgress(p);
+  const pct = percentLeft(primary);
   const fillPct = pct == null ? 100 : pct;
   const status = statusFor(p);
 
   const cicon = document.createElement('div');
   cicon.className = `cicon is-${status}`;
-  cicon.style.setProperty('--brand', p.color);
-  cicon.dataset.id = p.id;
+  cicon.style.setProperty('--brand', brand.color);
+  cicon.dataset.id = p.providerId;
 
   const r = 10;
   const C = 2 * Math.PI * r;
@@ -122,14 +164,14 @@ function renderCollapsedIcon(p) {
               stroke-dasharray="${C.toFixed(2)}"
               stroke-dashoffset="${dashOffset.toFixed(2)}"/>
     </svg>
-    <span class="glyph">${svgIcon(p.iconKey)}</span>
-    <span class="cicon-tooltip">${p.name}${pct != null ? ` · ${pct}%` : ''}</span>
+    <span class="glyph">${svgFor(p.providerId)}</span>
+    <span class="cicon-tooltip">${escapeHtml(p.displayName)}${pct != null ? ` · ${pct}%` : ''}</span>
   `;
 
   cicon.addEventListener('click', (e) => {
     e.stopPropagation();
     setExpanded(true);
-    setTimeout(() => scrollToProvider(p.id), 50);
+    setTimeout(() => scrollToProvider(p.providerId), 60);
   });
   return cicon;
 }
@@ -137,63 +179,109 @@ function renderCollapsedIcon(p) {
 function renderExpanded() {
   const list = $('#provider-list');
   list.innerHTML = '';
-  if (!providers.length) {
-    const empty = document.createElement('div');
-    empty.className = 'pempty';
-    empty.innerHTML = '<strong>No providers yet</strong>Edit providers.json or use the tray menu.';
-    list.appendChild(empty);
+  const providers = snapshot.providers || [];
+
+  setStatusBadge();
+
+  if (!snapshot.ok) {
+    list.appendChild(renderEmpty(
+      'OpenUsage offline',
+      `Couldn't reach <code>${escapeHtml(settings?.apiBaseUrl || 'http://127.0.0.1:6736')}</code>. Start OpenUsage on your Mac and the notch will populate.`
+    ));
+    return;
+  }
+  if (snapshot.empty || !providers.length) {
+    list.appendChild(renderEmpty('No data yet', 'OpenUsage is reachable but hasn\'t returned any provider snapshots yet.'));
     return;
   }
   for (const p of providers) list.appendChild(renderProviderCard(p));
 }
 
+function setStatusBadge() {
+  const el = $('#head-status');
+  if (!el) return;
+  if (!snapshot.ok) { el.textContent = 'offline'; el.className = 'head-status is-bad'; return; }
+  if (snapshot.empty) { el.textContent = 'no data'; el.className = 'head-status is-mute'; return; }
+  const at = snapshot.fetchedAt ? new Date(snapshot.fetchedAt) : null;
+  el.textContent = at ? `updated ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'live';
+  el.className = 'head-status is-ok';
+}
+
+function renderEmpty(title, html) {
+  const el = document.createElement('div');
+  el.className = 'pempty';
+  el.innerHTML = `<strong>${escapeHtml(title)}</strong>${html}`;
+  return el;
+}
+
 function renderProviderCard(p) {
+  const brand = brandFor(p.providerId);
   const card = document.createElement('div');
   card.className = 'pcard';
-  card.dataset.id = p.id;
-  card.style.setProperty('--brand', p.color);
+  card.dataset.id = p.providerId;
+  card.style.setProperty('--brand', brand.color);
 
   const head = document.createElement('div');
   head.className = 'pcard-head';
   head.innerHTML = `
-    <div class="pcard-icon">${svgIcon(p.iconKey)}</div>
-    <div class="pcard-name">${escape(p.name)}</div>
-    ${p.plan ? `<div class="pcard-plan">${escape(p.plan)}</div>` : ''}
+    <div class="pcard-icon">${svgFor(p.providerId)}</div>
+    <div class="pcard-name">${escapeHtml(p.displayName)}</div>
+    ${p.plan ? `<div class="pcard-plan">${escapeHtml(p.plan)}</div>` : ''}
   `;
+  head.addEventListener('click', () => window.winbar?.openProviderDashboard(p.providerId));
   card.appendChild(head);
 
-  for (const m of p.metrics) {
-    card.appendChild(renderMetric(m, p));
+  if (!p.lines || !p.lines.length) {
+    const e = document.createElement('div');
+    e.className = 'pcard-empty';
+    e.textContent = 'No data';
+    card.appendChild(e);
+  } else {
+    for (const l of p.lines) {
+      if (!l) continue;
+      if (l.type === 'progress') card.appendChild(renderProgressLine(l));
+      else if (l.type === 'text') card.appendChild(renderTextLine(l));
+    }
   }
-
   return card;
 }
 
-function renderMetric(m, p) {
+function renderProgressLine(l) {
   const row = document.createElement('div');
-  row.className = 'pmetric';
-  const pct = typeof m.percentLeft === 'number' ? m.percentLeft : null;
+  row.className = 'pline pline-progress';
+  const pct = percentLeft(l);
   const isLow = pct != null && pct <= 15;
   const isWarn = pct != null && pct > 15 && pct <= 35;
   const fillClass = isLow ? 'is-low' : isWarn ? 'is-warn' : '';
+  const usedPct = pct != null ? 100 - pct : 0;
 
   row.innerHTML = `
-    <div class="pmetric-row">
-      <span class="pmetric-label">${escape(m.label)}</span>
-      <span class="pmetric-val">${escape(fmtMetricRight(m))}</span>
+    <div class="pline-row">
+      <span class="pline-label">${escapeHtml(l.label)}</span>
+      <span class="pline-val">${escapeHtml(fmtProgressRight(l))}</span>
     </div>
     ${pct != null ? `
-      <div class="pmetric-bar">
-        <div class="pmetric-fill ${fillClass}" style="width: ${pct}%"></div>
+      <div class="pline-bar">
+        <div class="pline-fill ${fillClass}" style="width: ${usedPct}%"></div>
       </div>
     ` : ''}
-    ${m.resetsAt ? `<div class="pmetric-reset">Resets in ${escape(fmtReset(m.resetsAt))}</div>` : ''}
+    ${l.resetsAt ? `<div class="pline-reset">Resets in ${escapeHtml(fmtReset(l.resetsAt))}</div>` : ''}
   `;
   return row;
 }
 
-function escape(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({
+function renderTextLine(l) {
+  const row = document.createElement('div');
+  row.className = 'pline pline-text';
+  row.innerHTML = `
+    <span class="pline-label">${escapeHtml(l.label)}</span>
+    <span class="pline-val">${escapeHtml(l.value)}</span>
+  `;
+  return row;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
 }
@@ -213,17 +301,17 @@ async function setExpanded(next) {
 
 document.addEventListener('click', (e) => {
   if (e.target.closest('.head-btn')) return;
-  if (!expanded && e.target.closest('#collapsed-view')) {
-    setExpanded(true);
-  }
+  if (e.target.closest('.pcard')) return;
+  if (!expanded && e.target.closest('#collapsed-view')) setExpanded(true);
 });
 
 $('#btn-collapse').addEventListener('click', () => setExpanded(false));
-$('#btn-open-file').addEventListener('click', () => window.winbar?.openProvidersFile());
-$('#btn-position').addEventListener('click', async () => {
-  const next = settings.position === 'bottom' ? 'top' : 'bottom';
-  await window.winbar?.setSettings({ position: next });
+$('#btn-refresh').addEventListener('click', async () => {
+  $('#btn-refresh').classList.add('is-spinning');
+  await window.winbar?.refreshProviders();
+  setTimeout(() => $('#btn-refresh').classList.remove('is-spinning'), 600);
 });
+$('#btn-openusage').addEventListener('click', () => window.winbar?.openOpenusageRelease());
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && expanded) setExpanded(false);
