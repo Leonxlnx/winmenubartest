@@ -102,12 +102,17 @@ body.state-expanded .notch { border-radius: 0 0 18px 18px; }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 0 10px;
+  gap: 8px;
+  padding: 0 16px;
   height: 100%;
   -webkit-app-region: drag;
+  animation: collapsed-in 280ms var(--ease-soft);
 }
 body.state-expanded .collapsed { display: none; }
+@keyframes collapsed-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
 .cicon {
   position: relative;
@@ -184,6 +189,28 @@ body.pulse-low .cicon.is-low {
   0%, 100% { filter: drop-shadow(0 0 0 transparent); }
   50% { filter: drop-shadow(0 0 6px rgba(255, 69, 58, 0.7)); }
 }
+
+.cicon-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 16px;
+  height: 14px;
+  padding: 0 4px;
+  background: var(--bad);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0;
+  box-shadow: 0 0 0 2px var(--notch-bg);
+  pointer-events: none;
+  z-index: 2;
+}
+.cicon.is-warn .cicon-badge { background: var(--warn); color: #2a2406; }
 
 .cicon-tooltip {
   position: absolute;

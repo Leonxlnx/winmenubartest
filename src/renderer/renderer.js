@@ -167,6 +167,7 @@ function renderCollapsedIcon(p) {
   const C = 2 * Math.PI * r;
   const dashOffset = C * (1 - fillPct / 100);
 
+  const showBadge = pct != null && pct <= 20;
   cicon.innerHTML = `
     <svg viewBox="0 0 24 24" class="ring" aria-hidden="true">
       <circle class="ring-track" cx="12" cy="12" r="${r}"/>
@@ -175,7 +176,8 @@ function renderCollapsedIcon(p) {
               stroke-dashoffset="${dashOffset.toFixed(2)}"/>
     </svg>
     <span class="glyph">${svgFor(p.providerId)}</span>
-    <span class="cicon-tooltip">${escapeHtml(p.displayName)}${pct != null ? ` · ${pct}%` : ''}</span>
+    ${showBadge ? `<span class="cicon-badge">${pct}</span>` : ''}
+    <span class="cicon-tooltip">${escapeHtml(p.displayName)}${pct != null ? ` · ${pct}% left` : ''}${p.plan ? ` · ${escapeHtml(p.plan)}` : ''}</span>
   `;
 
   cicon.addEventListener('click', (e) => {
