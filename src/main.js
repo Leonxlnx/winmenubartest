@@ -85,39 +85,34 @@ function applyBounds(animate = false, duration = 320) {
   smoothResize(target, duration);
 }
 
-function easeOutExpo(t) {
-  return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
-}
-
+function easeOutQuint(t) { return 1 - Math.pow(1 - t, 5); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-function smoothResize(target, duration = 320) {
+function smoothResize(target, duration = 360) {
   if (!mainWindow) return;
   if (resizeTween) {
-    clearInterval(resizeTween);
+    clearTimeout(resizeTween);
     resizeTween = null;
   }
   const start = mainWindow.getBounds();
   const startTime = Date.now();
-  resizeTween = setInterval(() => {
-    if (!mainWindow) {
-      clearInterval(resizeTween);
-      resizeTween = null;
-      return;
-    }
+  const frame = () => {
+    if (!mainWindow) { resizeTween = null; return; }
     const t = Math.min(1, (Date.now() - startTime) / duration);
-    const e = easeOutExpo(t);
+    const e = easeOutQuint(t);
     mainWindow.setBounds({
       x: Math.round(lerp(start.x, target.x, e)),
       y: Math.round(lerp(start.y, target.y, e)),
       width: Math.round(lerp(start.width, target.width, e)),
       height: Math.round(lerp(start.height, target.height, e))
     });
-    if (t >= 1) {
-      clearInterval(resizeTween);
+    if (t < 1) {
+      resizeTween = setTimeout(frame, 1000 / 120);
+    } else {
       resizeTween = null;
     }
-  }, 1000 / 60);
+  };
+  frame();
 }
 function applyWindowFlags() {
   if (!mainWindow) return;
@@ -156,7 +151,7 @@ ipcMain.handle('settings:reset', () => {
 
 ipcMain.handle('notch:setExpanded', (_e, expanded) => {
   isExpanded = !!expanded;
-  applyBounds(true, isExpanded ? 360 : 280);
+  applyBounds(true, isExpanded ? 420 : 260);
   return isExpanded;
 });
 
