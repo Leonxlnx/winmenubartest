@@ -3,15 +3,11 @@
   "version": "1.0.0",
   "description": "macOS-style menu bar for Windows. A always-on-top, blurred, system-aware top bar built with Electron and the native Windows AppBar API.",
   "main": "src/main.js",
-  "bin": {
-    "winusage": "bin/winusage.js"
-  },
   "scripts": {
     "start": "electron .",
     "dev": "electron . --enable-logging",
     "build": "electron-builder --win --x64",
-    "pack": "electron-builder --dir",
-    "cli": "node bin/winusage.js"
+    "pack": "electron-builder --dir"
   },
   "author": "winmenubartest",
   "license": "MIT",
