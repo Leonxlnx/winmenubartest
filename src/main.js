@@ -127,7 +127,11 @@ function applyWindowFlags() {
 }
 function sendSettings() { mainWindow?.webContents.send('settings:loaded', currentSettings); }
 function sendSnapshot() { mainWindow?.webContents.send('providers:loaded', lastSnapshot); }
-function sendActive() { mainWindow?.webContents.send('active:loaded', processes.snapshot()); }
+function sendActive() {
+  const enabled = new Set(currentSettings.enabledProviders || []);
+  const list = processes.snapshot().filter((p) => enabled.has(p.id));
+  mainWindow?.webContents.send('active:loaded', list);
+}
 
 /* ---------- IPC ---------- */
 ipcMain.handle('settings:get', () => currentSettings);
@@ -166,7 +170,10 @@ ipcMain.handle('providers:refresh', async () => {
   await openusage.fetchAll();
   return openusage.snapshot();
 });
-ipcMain.handle('active:list', () => processes.snapshot());
+ipcMain.handle('active:list', () => {
+  const enabled = new Set(currentSettings.enabledProviders || []);
+  return processes.snapshot().filter((p) => enabled.has(p.id));
+});
 ipcMain.handle('providers:openDashboard', (_e, providerId) => {
   const map = {
     codex: 'https://chatgpt.com/codex/settings/usage',

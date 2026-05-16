@@ -233,14 +233,15 @@ function renderCollapsedIcon(p) {
 function renderExpanded() {
   const list = $('#provider-list');
   list.innerHTML = '';
-  const providers = snapshot.providers || [];
+  const enabled = new Set(settings?.enabledProviders || []);
+  const providers = (snapshot.providers || []).filter((p) => enabled.has(p.providerId));
 
   if (!snapshot.ok) {
     list.appendChild(renderEmpty('OpenUsage offline', 'Start OpenUsage to populate.'));
     return;
   }
-  if (snapshot.empty || !providers.length) {
-    list.appendChild(renderEmpty('No data yet', 'Waiting for OpenUsage.'));
+  if (!providers.length) {
+    list.appendChild(renderEmpty('No providers', 'Enable some in the tray menu (right-click the tray icon).'));
     return;
   }
   for (const p of providers) list.appendChild(renderProviderRow(p));

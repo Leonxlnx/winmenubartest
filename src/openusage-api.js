@@ -30,7 +30,7 @@ const DEMO_PROVIDERS = [
     ]
   },
   {
-    providerId: 'claude', displayName: 'Claude', plan: 'Max',
+    providerId: 'claude', displayName: 'Claude Code', plan: 'Max',
     lines: [
       { type: 'progress', label: 'Weekly', used: 58, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(43) }
     ]
@@ -42,9 +42,15 @@ const DEMO_PROVIDERS = [
     ]
   },
   {
-    providerId: 'copilot', displayName: 'Copilot', plan: 'Pro',
+    providerId: 'windsurf', displayName: 'Windsurf', plan: 'Pro',
     lines: [
-      { type: 'progress', label: 'Premium', used: 84, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(12 * 24) }
+      { type: 'progress', label: 'Premium', used: 18, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(72) }
+    ]
+  },
+  {
+    providerId: 'antigravity', displayName: 'Antigravity', plan: 'Free',
+    lines: [
+      { type: 'progress', label: 'Daily', used: 42, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(15) }
     ]
   }
 ];
