@@ -321,7 +321,6 @@ $('#btn-refresh').addEventListener('click', async () => {
   await window.winbar?.refreshProviders();
   setTimeout(() => $('#btn-refresh').classList.remove('is-spinning'), 600);
 });
-$('#btn-openusage').addEventListener('click', () => window.winbar?.openOpenusageRelease());
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && expanded) setExpanded(false);
