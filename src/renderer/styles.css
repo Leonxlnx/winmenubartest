@@ -356,6 +356,36 @@ body.auto-hide.is-idle .bar:hover {
   margin: 12px 6px 6px;
   font-weight: 600;
 }
+
+.sp-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 0 0 4px;
+}
+.sp-preset {
+  appearance: none;
+  background: var(--bar-hover);
+  border: 1px solid transparent;
+  color: var(--bar-fg);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: default;
+  transition: background 120ms ease, border-color 120ms ease, transform 100ms ease;
+  text-align: left;
+}
+.sp-preset:hover {
+  background: var(--bar-active);
+}
+.sp-preset.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.sp-preset:active { transform: scale(0.97); }
 .sp-section {
   display: flex;
   flex-direction: column;

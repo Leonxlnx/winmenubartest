@@ -152,7 +152,7 @@ function renderField(field, settings, onChange) {
   }
 }
 
-function renderSettingsPanel(panelEl, settings, { onChange, onReset, onClose }) {
+function renderSettingsPanel(panelEl, settings, { onChange, onReset, onClose, onApplyPreset }) {
   panelEl.innerHTML = '';
 
   const header = el('div', { class: 'sp-header' }, [
@@ -160,6 +160,19 @@ function renderSettingsPanel(panelEl, settings, { onChange, onReset, onClose }) 
     el('button', { class: 'sp-close', onclick: onClose, 'aria-label': 'Close' }, '×')
   ]);
   panelEl.appendChild(header);
+
+  if (window.WinBarPresets && onApplyPreset) {
+    panelEl.appendChild(el('div', { class: 'sp-section-title' }, 'Style preset'));
+    const presetBox = el('div', { class: 'sp-presets' });
+    for (const [key, preset] of Object.entries(window.WinBarPresets)) {
+      const btn = el('button', {
+        class: 'sp-preset' + (settings.preset === key ? ' is-active' : '')
+      }, preset.label);
+      btn.addEventListener('click', () => onApplyPreset(key));
+      presetBox.appendChild(btn);
+    }
+    panelEl.appendChild(presetBox);
+  }
 
   for (const section of SECTIONS) {
     panelEl.appendChild(el('div', { class: 'sp-section-title' }, section.title));

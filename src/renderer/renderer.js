@@ -283,7 +283,13 @@ function rerenderSettingsPanel() {
     onReset: async () => {
       await window.winbar?.resetSettings();
     },
-    onClose: () => closeSettings()
+    onClose: () => closeSettings(),
+    onApplyPreset: async (key) => {
+      const preset = window.WinBarPresets?.[key];
+      if (!preset) return;
+      await window.winbar?.setSettings({ preset: key, ...preset.patch });
+      rerenderSettingsPanel();
+    }
   });
 }
 

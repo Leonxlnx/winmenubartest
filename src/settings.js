@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULTS = {
+  preset: 'macSonoma',
   position: 'center',
   width: 720,
   height: 36,
