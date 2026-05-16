@@ -26,41 +26,25 @@ const DEMO_PROVIDERS = [
   {
     providerId: 'codex', displayName: 'Codex', plan: 'Pro',
     lines: [
-      { type: 'progress', label: 'Session', used: 27, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(2.3) },
-      { type: 'progress', label: 'Weekly',  used: 9,  limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(103) },
-      { type: 'text', label: 'Today', value: '$1.24 · 3.2M tokens' }
+      { type: 'progress', label: 'Weekly', used: 9, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(103) }
     ]
   },
   {
     providerId: 'claude', displayName: 'Claude', plan: 'Max',
     lines: [
-      { type: 'progress', label: 'Session', used: 0,  limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(4.5) },
-      { type: 'progress', label: 'Weekly',  used: 58, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(43) }
+      { type: 'progress', label: 'Weekly', used: 58, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(43) }
     ]
   },
   {
     providerId: 'cursor', displayName: 'Cursor', plan: 'Ultra',
     lines: [
-      { type: 'progress', label: 'Plan usage', used: 32.22, limit: 200, format: { kind: 'currency' }, resetsAt: hoursFromNow(8 * 24) }
+      { type: 'progress', label: 'Plan', used: 32.22, limit: 200, format: { kind: 'currency' }, resetsAt: hoursFromNow(8 * 24) }
     ]
   },
   {
     providerId: 'copilot', displayName: 'Copilot', plan: 'Pro',
     lines: [
-      { type: 'progress', label: 'Premium', used: 46, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(12 * 24) }
-    ]
-  },
-  {
-    providerId: 'windsurf', displayName: 'Windsurf', plan: 'Pro',
-    lines: [
-      { type: 'progress', label: 'Flex',    used: 18, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(72) },
-      { type: 'progress', label: 'Premium', used: 87, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(72) }
-    ]
-  },
-  {
-    providerId: 'gemini', displayName: 'Gemini', plan: 'Pro',
-    lines: [
-      { type: 'progress', label: 'Daily', used: 36, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(18) }
+      { type: 'progress', label: 'Premium', used: 84, limit: 100, format: { kind: 'percent' }, resetsAt: hoursFromNow(12 * 24) }
     ]
   }
 ];
