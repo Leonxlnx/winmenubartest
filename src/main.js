@@ -79,9 +79,7 @@ function applyBounds(animate = false, duration = 420) {
     mainWindow.setBounds(target);
     return;
   }
-  // Bouncy on open (satisfying), quick clean ease on close
-  const ease = isExpanded ? easeOutBack : easeOutQuart;
-  smoothResize(target, duration, ease);
+  smoothResize(target, duration, easeOutQuart);
 }
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -158,7 +156,7 @@ ipcMain.handle('settings:reset', () => {
 
 ipcMain.handle('notch:setExpanded', (_e, expanded) => {
   isExpanded = !!expanded;
-  applyBounds(true, isExpanded ? 480 : 260);
+  applyBounds(true, isExpanded ? 380 : 240);
   return isExpanded;
 });
 
