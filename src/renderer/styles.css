@@ -171,7 +171,7 @@ body.state-expanded .collapsed { display: none; }
   z-index: 1;
   flex-direction: column;
   height: 100%;
-  padding: 10px 8px;
+  padding: 30px 10px 10px;
   -webkit-app-region: no-drag;
 }
 body.state-expanded .expanded { display: flex; }
@@ -181,7 +181,7 @@ body.state-expanded .expanded { display: flex; }
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 .provider-list::-webkit-scrollbar { width: 5px; }
 .provider-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.06); border-radius: 3px; }
@@ -189,10 +189,10 @@ body.state-expanded .expanded { display: flex; }
 
 .prow {
   display: grid;
-  grid-template-columns: 30px 1fr auto;
+  grid-template-columns: 32px 1fr auto;
   align-items: center;
   gap: 14px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   border-radius: 10px;
   cursor: default;
   transition: background 160ms ease;
@@ -213,20 +213,20 @@ body.state-expanded .expanded { display: flex; }
 }
 
 .prow-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
   background: var(--brand, #444);
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 .prow-icon svg.glyph-svg {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   color: #fff;
   fill: currentColor;
   display: block;
@@ -283,8 +283,8 @@ body.state-expanded .expanded { display: flex; }
    ============================================================ */
 .exp-settings {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 6px;
+  right: 8px;
   appearance: none;
   background: transparent;
   border: 0;
@@ -296,11 +296,12 @@ body.state-expanded .expanded { display: flex; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
+  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
   z-index: 3;
   -webkit-app-region: no-drag;
+  opacity: 0.6;
 }
-.exp-settings:hover { background: var(--hover); color: var(--fg); }
+.exp-settings:hover { background: var(--hover); color: var(--fg); opacity: 1; }
 .exp-settings .ic { width: 16px; height: 16px; }
 
 .settings-panel {

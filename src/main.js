@@ -19,11 +19,12 @@ let resizeTween = null;
 function computeExpandedHeight() {
   // Dynamic: row count drives height so no empty bottom space
   const enabled = currentSettings.enabledProviders || [];
-  const rowH = 52; // 30px chip + 10/10 padding + 2 gap
-  const padding = 22;
-  const minH = 80;
-  const maxH = currentSettings.expandedMaxHeight || 360;
-  return Math.min(maxH, Math.max(minH, padding + enabled.length * rowH));
+  const rowH = 56; // 32px chip + 12/12 padding + 4 gap
+  const topPad = 30; // settings button clearance
+  const bottomPad = 10;
+  const minH = 100;
+  const maxH = currentSettings.expandedMaxHeight || 400;
+  return Math.min(maxH, Math.max(minH, topPad + bottomPad + enabled.length * rowH));
 }
 
 function computeBounds(expanded) {
