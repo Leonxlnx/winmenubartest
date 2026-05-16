@@ -5,9 +5,9 @@ const path = require('path');
 const DEFAULTS = {
   collapsedWidth: 240,
   collapsedHeight: 28,
-  expandedWidth: 380,
-  expandedMaxHeight: 260,
-  cornerRadius: 14,
+  expandedWidth: 440,
+  expandedMaxHeight: 320,
+  cornerRadius: 16,
   theme: 'dark',
   accent: '#0a84ff',
   fontSize: 12,

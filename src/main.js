@@ -86,15 +86,11 @@ function applyBounds(animate = false, duration = 420) {
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-// Apple-feeling spring (subtle overshoot then settle)
-function easeOutBack(t, overshoot = 1.4) {
-  const c1 = overshoot;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-}
+// Smooth professional ease, no overshoot
 function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-function smoothResize(target, duration = 420, ease = easeOutBack) {
+function smoothResize(target, duration = 380, ease = easeOutQuart) {
   if (!mainWindow) return;
   if (resizeTween) {
     clearTimeout(resizeTween);
