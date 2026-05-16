@@ -1,0 +1,273 @@
+/* ============================================================
+   WinMenuBar — macOS-style top bar for Windows
+   Visual language follows macOS Sonoma menu bar.
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+/* The bar itself */
+.menubar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 32px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 0 8px;
+  background: rgba(20, 20, 20, 0.55);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  -webkit-app-region: drag;
+}
+
+/* clusters */
+.left-cluster,
+.right-cluster {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  -webkit-app-region: no-drag;
+}
+
+.right-cluster {
+  gap: 0;
+  padding-right: 4px;
+}
+
+/* Generic menu item (left side) */
+.menu-item {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #f5f5f7;
+  font: inherit;
+  font-size: 13px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 5px;
+  margin: 3px 0;
+  cursor: default;
+  transition: background 80ms ease;
+  white-space: nowrap;
+  height: 26px;
+}
+
+.menu-item:hover,
+.menu-item.is-open {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.menu-item.is-open {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.menu-item.app-name strong {
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+/* Apple-like logo */
+.menu-item.logo {
+  padding: 0 10px;
+}
+
+.logo-svg {
+  width: 14px;
+  height: 14px;
+  fill: #f5f5f7;
+  transform: translateY(-1px);
+}
+
+/* Right-side status items */
+.status-item {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #f5f5f7;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 5px;
+  margin: 3px 1px;
+  cursor: default;
+  transition: background 80ms ease;
+  height: 26px;
+}
+
+.status-item:hover,
+.status-item.is-open {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.ic {
+  width: 16px;
+  height: 16px;
+  color: #f5f5f7;
+  stroke: currentColor;
+}
+
+/* Battery */
+.battery {
+  gap: 5px;
+}
+.battery-pct {
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  font-weight: 500;
+  opacity: 0.95;
+}
+.battery-icon {
+  display: inline-flex;
+  align-items: center;
+}
+.battery-shell {
+  width: 24px;
+  height: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 3px;
+  padding: 1px;
+  display: block;
+  position: relative;
+}
+.battery-fill {
+  display: block;
+  height: 100%;
+  background: #f5f5f7;
+  border-radius: 1.5px;
+  transition: width 200ms ease, background 200ms ease;
+}
+.battery-fill.low {
+  background: #ff453a;
+}
+.battery-fill.charging {
+  background: #32d74b;
+}
+.battery-tip {
+  width: 2px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.85);
+  display: inline-block;
+  margin-left: 1px;
+  border-radius: 0 1px 1px 0;
+}
+
+/* Clock */
+.clock {
+  padding: 0 10px;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.clock-sep {
+  width: 1px;
+  height: 0;
+}
+
+/* Dropdown panel */
+.dropdown {
+  position: fixed;
+  top: 30px;
+  left: 0;
+  min-width: 220px;
+  background: rgba(40, 40, 40, 0.78);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(0, 0, 0, 0.5);
+  padding: 4px;
+  color: #f5f5f7;
+  font-size: 13px;
+  z-index: 9999;
+  animation: dropdown-in 90ms ease;
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: default;
+  gap: 24px;
+  min-height: 22px;
+}
+.dropdown-item:hover {
+  background: #0a5cff;
+  color: #fff;
+}
+.dropdown-item .shortcut {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.dropdown-item:hover .shortcut {
+  color: rgba(255, 255, 255, 0.85);
+}
+.dropdown-item.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.dropdown-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 4px 6px;
+}
+.dropdown-header {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Subtle hover when nothing is open */
+.menubar:has(.menu-item.is-open) .menu-item:hover:not(.is-open) {
+  background: rgba(255, 255, 255, 0.16);
+}
