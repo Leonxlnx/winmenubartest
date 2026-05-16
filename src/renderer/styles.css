@@ -396,6 +396,36 @@ body.state-expanded .expanded { display: flex; }
 .sp-toggle.is-on { background: var(--ok); }
 .sp-toggle.is-on .sp-thumb { transform: translateX(11px); background: #fff; }
 
+.sp-footer {
+  display: flex;
+  gap: 4px;
+  padding-top: 8px;
+  margin-top: 6px;
+  border-top: 1px solid var(--divider);
+}
+.sp-action {
+  flex: 1;
+  appearance: none;
+  background: var(--hover);
+  border: 0;
+  color: var(--fg);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 7px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 120ms ease, color 120ms ease;
+}
+.sp-action:hover { background: var(--active); }
+.sp-action-quit { background: rgba(255, 69, 58, 0.10); color: #ff8a82; }
+.sp-action-quit:hover { background: rgba(255, 69, 58, 0.20); color: #ffaaa3; }
+.ic-sm { width: 13px; height: 13px; }
+
 /* ---------- Empty / offline ---------- */
 .pempty {
   color: var(--fg-mute);

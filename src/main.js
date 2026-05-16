@@ -211,6 +211,14 @@ ipcMain.handle('system:info', () => ({
 }));
 
 ipcMain.handle('app:quit', () => app.quit());
+ipcMain.handle('app:hideNotch', () => {
+  if (mainWindow) {
+    isExpanded = false;
+    applyBounds(false);
+    mainWindow.hide();
+    rebuildTrayMenu();
+  }
+});
 ipcMain.handle('app:openExternal', (_e, url) => {
   if (typeof url === 'string' && /^https?:\/\//i.test(url)) shell.openExternal(url);
 });
@@ -220,15 +228,31 @@ ipcMain.handle('app:openOpenusageRelease', () => {
 
 /* ---------- Tray ---------- */
 function buildTrayIcon() {
+  // 16x16 rounded "AI" pill with 3 dots indicating active tools
   const size = 16;
   const buf = Buffer.alloc(size * size * 4);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4;
-      const cx = x - 7.5, cy = y - 6;
-      const insideEllipse = (cx * cx) / 36 + (cy * cy) / 9 <= 1;
+      let alpha = 0;
+      // Pill outline: rounded rectangle 1..14 x 3..12
+      const inX = x >= 1 && x <= 14;
+      const inY = y >= 3 && y <= 12;
+      const corner = (cx, cy) => {
+        const dx = x - cx, dy = y - cy;
+        return dx * dx + dy * dy <= 6;
+      };
+      const inCorners = corner(2.5, 4.5) || corner(12.5, 4.5) || corner(2.5, 10.5) || corner(12.5, 10.5);
+      const inRect = (x >= 3 && x <= 12 && inY) || (inX && y >= 5 && y <= 10);
+      const inside = inRect || inCorners;
+      // Three dots inside
+      const dot1 = (x - 5) * (x - 5) + (y - 8) * (y - 8) <= 1;
+      const dot2 = (x - 8) * (x - 8) + (y - 8) * (y - 8) <= 1;
+      const dot3 = (x - 11) * (x - 11) + (y - 8) * (y - 8) <= 1;
+      if (inside) alpha = 230;
+      if (dot1 || dot2 || dot3) alpha = 0;
       buf[i] = 255; buf[i + 1] = 255; buf[i + 2] = 255;
-      buf[i + 3] = insideEllipse ? 230 : 0;
+      buf[i + 3] = alpha;
     }
   }
   return nativeImage.createFromBuffer(buf, { width: size, height: size });
@@ -255,9 +279,10 @@ const TRAY_TOOLS = [
 function buildTrayMenu() {
   const enabled = new Set(currentSettings.enabledProviders || []);
   return Menu.buildFromTemplate([
-    { label: 'Show / hide notch', click: () => {
+    { label: mainWindow && mainWindow.isVisible() ? 'Hide AI notch' : 'Show AI notch', click: () => {
         if (!mainWindow) return;
         if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.show();
+        setTimeout(rebuildTrayMenu, 100);
       }},
     { label: 'Refresh from OpenUsage', click: () => openusage.fetchAll() },
     { type: 'separator' },

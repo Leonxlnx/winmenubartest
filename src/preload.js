@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('winbar', {
   openProviderDashboard: (id) => ipcRenderer.invoke('providers:openDashboard', id),
   openOpenusageRelease: () => ipcRenderer.invoke('app:openOpenusageRelease'),
   quit: () => ipcRenderer.invoke('app:quit'),
+  hideNotch: () => ipcRenderer.invoke('app:hideNotch'),
   openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
   listActive: () => ipcRenderer.invoke('active:list'),
   onSettings: (cb) => { ipcRenderer.on('settings:loaded', (_e, settings) => cb(settings)); },

@@ -336,6 +336,15 @@ $('#btn-settings-close').addEventListener('click', (e) => {
   e.stopPropagation();
   closeSettings();
 });
+$('#btn-hide-notch').addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeSettings();
+  window.winbar?.hideNotch();
+});
+$('#btn-quit').addEventListener('click', (e) => {
+  e.stopPropagation();
+  window.winbar?.quit();
+});
 
 /* ---------- Settings panel ---------- */
 const TOOLS = [
