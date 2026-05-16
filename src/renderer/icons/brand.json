@@ -1,0 +1,19 @@
+{
+  "amp":                    { "name": "Amp",                "color": "#F34E3F" },
+  "antigravity":            { "name": "Antigravity",        "color": "#4285F4" },
+  "claude":                 { "name": "Claude",             "color": "#DE7356" },
+  "codex":                  { "name": "Codex",              "color": "#74AA9C" },
+  "copilot":                { "name": "Copilot",            "color": "#A855F7" },
+  "cursor":                 { "name": "Cursor",             "color": "#000000" },
+  "factory":                { "name": "Factory",            "color": "#020202" },
+  "gemini":                 { "name": "Gemini",             "color": "#4285F4" },
+  "jetbrains-ai-assistant": { "name": "JetBrains AI",       "color": "#7D5FE6" },
+  "kimi":                   { "name": "Kimi",               "color": "#000000" },
+  "kiro":                   { "name": "Kiro",               "color": "#C09CFF" },
+  "minimax":                { "name": "MiniMax",            "color": "#F5433C" },
+  "opencode-go":            { "name": "OpenCode Go",        "color": "#000000" },
+  "perplexity":             { "name": "Perplexity",         "color": "#20808D" },
+  "synthetic":              { "name": "Synthetic",          "color": "#000000" },
+  "windsurf":               { "name": "Windsurf",           "color": "#111111" },
+  "zai":                    { "name": "Z.ai",               "color": "#2D2D2D" }
+}
