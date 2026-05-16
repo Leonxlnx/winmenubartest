@@ -3,11 +3,11 @@
    ============================================================ */
 
 :root {
-  --notch-bg:        rgba(12, 12, 14, 0.97);
-  --notch-bg-2:      rgba(18, 18, 22, 0.98);
+  --notch-bg:        rgba(15, 15, 18, 0.96);
+  --notch-bg-2:      rgba(24, 24, 28, 0.98);
   --fg:              #f5f5f7;
   --fg-dim:          rgba(245, 245, 247, 0.55);
-  --fg-mute:         rgba(245, 245, 247, 0.30);
+  --fg-mute:         rgba(245, 245, 247, 0.32);
   --hover:           rgba(255, 255, 255, 0.06);
   --active:          rgba(255, 255, 255, 0.10);
   --divider:         rgba(255, 255, 255, 0.05);
@@ -15,11 +15,14 @@
   --ok:              #32d74b;
   --warn:            #ffd60a;
   --bad:             #ff453a;
-  --radius:          14px;
+  --radius:          16px;
   --font-size:       12px;
-  --shadow:          0 14px 30px rgba(0, 0, 0, 0.55),
-                     0 2px 6px rgba(0, 0, 0, 0.4);
-  --ease-out:        cubic-bezier(0.22, 1, 0.36, 1);
+  --border-color:    rgba(255, 255, 255, 0.10);
+  --shadow:          0 18px 40px rgba(0, 0, 0, 0.55),
+                     0 4px 10px rgba(0, 0, 0, 0.45),
+                     0 0 0 0.5px rgba(0, 0, 0, 0.6);
+  --ease-apple:      cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out:        cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,17 +56,28 @@ html, body {
 .notch-bg {
   position: absolute;
   inset: 0;
-  background: var(--notch-bg);
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  background:
+    linear-gradient(180deg, var(--notch-bg-2) 0%, var(--notch-bg) 100%);
+  backdrop-filter: blur(36px) saturate(190%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  border: 1px solid var(--border-color);
+  border-top: 0;
   border-radius: inherit;
   box-shadow:
     var(--shadow),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
-    inset 1px 0 0 rgba(255, 255, 255, 0.03),
-    inset -1px 0 0 rgba(255, 255, 255, 0.03);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
   pointer-events: none;
   z-index: 0;
+}
+.notch-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 80%);
+  border-radius: inherit;
+  pointer-events: none;
 }
 .collapsed, .expanded {
   pointer-events: auto;

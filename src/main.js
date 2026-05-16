@@ -72,23 +72,28 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
-function applyBounds(animate = false, duration = 420) {
+function applyBounds(animate = false, duration = 460) {
   if (!mainWindow) return;
   const target = computeBounds(isExpanded);
   if (!animate) {
     mainWindow.setBounds(target);
     return;
   }
-  smoothResize(target, duration, easeOutQuart);
+  smoothResize(target, duration, appleEase);
 }
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-// Smooth professional ease, no overshoot
+// Apple's signature ease (used in iOS / macOS UI transitions)
+function appleEase(t) {
+  // cubic-bezier(0.32, 0.72, 0, 1) - the smoothest non-overshoot spring feel
+  // Approximation: combined power for buttery deceleration
+  const p = 1 - t;
+  return 1 - (p * p * p * p);
+}
 function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
-function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-function smoothResize(target, duration = 380, ease = easeOutQuart) {
+function smoothResize(target, duration = 460, ease = appleEase) {
   if (!mainWindow) return;
   if (resizeTween) {
     clearTimeout(resizeTween);
@@ -107,7 +112,8 @@ function smoothResize(target, duration = 380, ease = easeOutQuart) {
       height: Math.round(lerp(start.height, target.height, e))
     });
     if (t < 1) {
-      resizeTween = setTimeout(frame, 1000 / 120);
+      // Aim for 144fps; setImmediate gives us the fastest scheduling
+      resizeTween = setTimeout(frame, 1000 / 144);
     } else {
       resizeTween = null;
     }
@@ -156,7 +162,7 @@ ipcMain.handle('settings:reset', () => {
 
 ipcMain.handle('notch:setExpanded', (_e, expanded) => {
   isExpanded = !!expanded;
-  applyBounds(true, isExpanded ? 380 : 240);
+  applyBounds(true, isExpanded ? 480 : 320);
   return isExpanded;
 });
 
