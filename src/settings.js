@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULTS = {
-  collapsedWidth: 220,
-  collapsedHeight: 30,
+  collapsedWidth: 240,
+  collapsedHeight: 28,
   expandedWidth: 380,
   expandedMaxHeight: 260,
   cornerRadius: 14,

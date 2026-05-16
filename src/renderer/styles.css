@@ -3,22 +3,21 @@
    ============================================================ */
 
 :root {
-  --notch-bg:        rgba(14, 14, 16, 0.94);
-  --notch-bg-2:      rgba(22, 22, 26, 0.96);
-  --notch-border:    rgba(255, 255, 255, 0.06);
+  --notch-bg:        rgba(12, 12, 14, 0.97);
+  --notch-bg-2:      rgba(18, 18, 22, 0.98);
   --fg:              #f5f5f7;
   --fg-dim:          rgba(245, 245, 247, 0.55);
   --fg-mute:         rgba(245, 245, 247, 0.30);
   --hover:           rgba(255, 255, 255, 0.06);
   --active:          rgba(255, 255, 255, 0.10);
-  --divider:         rgba(255, 255, 255, 0.06);
+  --divider:         rgba(255, 255, 255, 0.05);
   --accent:          #0a84ff;
   --ok:              #32d74b;
   --warn:            #ffd60a;
   --bad:             #ff453a;
   --radius:          14px;
   --font-size:       12px;
-  --shadow:          0 12px 28px rgba(0, 0, 0, 0.5),
+  --shadow:          0 14px 30px rgba(0, 0, 0, 0.55),
                      0 2px 6px rgba(0, 0, 0, 0.4);
   --ease-out:        cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -58,16 +57,18 @@ html, body {
   background: var(--notch-bg);
   backdrop-filter: blur(30px) saturate(180%);
   -webkit-backdrop-filter: blur(30px) saturate(180%);
-  border: 1px solid var(--notch-border);
-  border-top: 0;
   border-radius: inherit;
-  box-shadow: var(--shadow);
+  box-shadow:
+    var(--shadow),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    inset 1px 0 0 rgba(255, 255, 255, 0.03),
+    inset -1px 0 0 rgba(255, 255, 255, 0.03);
   pointer-events: none;
   z-index: 0;
 }
 
 /* ============================================================
-   Collapsed: wider summary pill (no icons, just text)
+   Collapsed: active AI tools row
    ============================================================ */
 .collapsed {
   position: relative;
@@ -75,8 +76,6 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0 14px;
   height: 100%;
   -webkit-app-region: drag;
   animation: collapsed-fade 240ms var(--ease-out);
@@ -87,28 +86,62 @@ body.state-expanded .collapsed { display: none; }
   to   { opacity: 1; }
 }
 
+.crun {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+}
+
 .cdot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
 }
-.cdot-ok   { background: var(--ok); }
-.cdot-warn { background: var(--warn); }
-.cdot-bad  { background: var(--bad); }
+.cdot-live { background: var(--ok); animation: pulse 1.8s ease-in-out infinite; }
 .cdot-mute { background: var(--fg-mute); }
+@keyframes pulse {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 rgba(50, 215, 75, 0.5); }
+  50%      { opacity: 0.75; box-shadow: 0 0 0 4px rgba(50, 215, 75, 0); }
+}
+
+.cchip {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--brand, #fff);
+}
+.cchip svg.glyph-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  color: inherit;
+  fill: currentColor;
+}
+.cchip[data-id="cursor"]      svg.glyph-svg { transform: scale(1.18); }
+.cchip[data-id="windsurf"]    svg.glyph-svg { transform: scale(1.05); }
+.cchip[data-id="amp"]         svg.glyph-svg { transform: scale(0.92); }
+.cchip[data-id="claude"]      svg.glyph-svg { transform: scale(1.04); }
+.cchip[data-id="codex"]       svg.glyph-svg { transform: scale(1.06); }
+.cchip[data-id="copilot"]     svg.glyph-svg { transform: scale(1.10); }
+.cchip[data-id="antigravity"] svg.glyph-svg { transform: scale(1.05); }
+
+.cmore {
+  font-size: 10px;
+  color: var(--fg-mute);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 
 .ctext {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--fg-dim);
   letter-spacing: 0.1px;
-}
-.cval {
-  color: var(--fg);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
   margin-left: 4px;
 }
 
