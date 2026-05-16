@@ -1,186 +1,207 @@
 /* ============================================================
-   WinNotch renderer
+   WinUsage renderer
    ============================================================ */
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
 
 let settings = null;
-let tasksCache = [];
+let providers = [];
 let expanded = false;
 
 /* ---------- Boot ---------- */
 (async () => {
   settings = await window.winbar?.getSettings();
   if (settings) applySettings(settings);
-  tasksCache = (await window.winbar?.listTasks()) || [];
+  providers = (await window.winbar?.listProviders()) || [];
   renderAll();
 
   const info = await window.winbar?.getSystemInfo();
-  if (info?.tasksFile) {
-    const hint = $('#tasks-file-hint');
-    if (hint) hint.textContent = info.tasksFile.split(/[\\/]/).pop();
-    hint.title = info.tasksFile;
+  const hint = $('#foot-hint');
+  if (hint && info?.providersFile) {
+    hint.textContent = `Edit ${info.providersFile.split(/[\\/]/).pop()} to add more`;
+    hint.title = info.providersFile;
   }
 })();
 
 window.winbar?.onSettings((next) => { settings = next; applySettings(next); renderAll(); });
-window.winbar?.onTasks((list) => { tasksCache = list || []; renderAll(); });
+window.winbar?.onProviders((list) => { providers = list || []; renderAll(); });
 window.winbar?.onNotchToggle(() => setExpanded(!expanded));
 
-/* ---------- Settings to DOM ---------- */
+setInterval(renderAll, 30 * 1000);
+
+/* ---------- Settings ---------- */
 function applySettings(s) {
   const root = document.documentElement;
   document.body.classList.toggle('theme-dark', s.theme !== 'light');
   document.body.classList.toggle('theme-light', s.theme === 'light');
+  document.body.classList.toggle('pulse-low', !!s.pulseLow);
   root.style.setProperty('--radius', `${s.cornerRadius}px`);
   root.style.setProperty('--accent', s.accent);
   root.style.setProperty('--font-size', `${s.fontSize}px`);
+}
+
+/* ---------- Helpers ---------- */
+function avgPercent(p) {
+  const pcts = p.metrics.map((m) => m.percentLeft).filter((x) => typeof x === 'number');
+  if (!pcts.length) return null;
+  return Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+}
+
+function statusFor(p) {
+  const a = avgPercent(p);
+  if (a == null) return 'ok';
+  if (a <= 15) return 'low';
+  if (a <= 35) return 'warn';
+  return 'ok';
+}
+
+function fmtReset(iso) {
+  if (!iso) return '';
+  const ms = new Date(iso).getTime() - Date.now();
+  if (isNaN(ms) || ms <= 0) return 'expired';
+  const m = Math.floor(ms / 60000);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return `${h}h ${m % 60}m`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
+}
+
+function fmtMetricRight(m) {
+  if (typeof m.percentLeft === 'number') return `${m.percentLeft}% left`;
+  if (typeof m.dollarsLeft === 'number') return `$${m.dollarsLeft.toFixed(2)} left`;
+  if (m.note) return m.note;
+  return '';
+}
+
+function svgIcon(iconKey) {
+  const inner = window.WinUsageIcons?.iconFor(iconKey) || '';
+  return `<svg viewBox="0 0 24 24" class="glyph-svg" aria-hidden="true">${inner}</svg>`;
 }
 
 /* ---------- Render ---------- */
 function renderAll() {
   renderCollapsed();
   renderExpanded();
-  updateStatusDot();
-}
-
-function counts() {
-  const out = { total: tasksCache.length, running: 0, done: 0, failed: 0, queued: 0 };
-  for (const t of tasksCache) out[t.status] = (out[t.status] || 0) + 1;
-  return out;
 }
 
 function renderCollapsed() {
-  const c = counts();
-  const meta = $('#collapsed-meta');
-  if (!meta) return;
-  if (c.running > 0) meta.textContent = `${c.running} running`;
-  else if (c.queued > 0) meta.textContent = `${c.queued} queued`;
-  else if (c.failed > 0) meta.textContent = `${c.failed} failed`;
-  else if (c.total > 0) meta.textContent = `all done`;
-  else meta.textContent = `no tasks`;
+  const root = $('#collapsed-view');
+  root.innerHTML = '';
+  if (!providers.length) {
+    const empty = document.createElement('span');
+    empty.className = 'cicon-tooltip';
+    empty.textContent = 'No providers';
+    root.appendChild(empty);
+    return;
+  }
+  for (const p of providers) {
+    root.appendChild(renderCollapsedIcon(p));
+  }
+}
+
+function renderCollapsedIcon(p) {
+  const pct = avgPercent(p);
+  const fillPct = pct == null ? 100 : pct;
+  const status = statusFor(p);
+
+  const cicon = document.createElement('div');
+  cicon.className = `cicon is-${status}`;
+  cicon.style.setProperty('--brand', p.color);
+  cicon.dataset.id = p.id;
+
+  const r = 10;
+  const C = 2 * Math.PI * r;
+  const dashOffset = C * (1 - fillPct / 100);
+
+  cicon.innerHTML = `
+    <svg viewBox="0 0 24 24" class="ring" aria-hidden="true">
+      <circle class="ring-track" cx="12" cy="12" r="${r}"/>
+      <circle class="ring-fill" cx="12" cy="12" r="${r}"
+              stroke-dasharray="${C.toFixed(2)}"
+              stroke-dashoffset="${dashOffset.toFixed(2)}"/>
+    </svg>
+    <span class="glyph">${svgIcon(p.iconKey)}</span>
+    <span class="cicon-tooltip">${p.name}${pct != null ? ` · ${pct}%` : ''}</span>
+  `;
+
+  cicon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setExpanded(true);
+    setTimeout(() => scrollToProvider(p.id), 50);
+  });
+  return cicon;
 }
 
 function renderExpanded() {
-  const c = counts();
-  $('#head-count').textContent = c.total
-    ? `${c.running} running · ${c.done} done${c.failed ? ` · ${c.failed} failed` : ''}`
-    : '';
-
-  const list = $('#task-list');
+  const list = $('#provider-list');
   list.innerHTML = '';
-
-  if (!tasksCache.length) {
+  if (!providers.length) {
     const empty = document.createElement('div');
-    empty.className = 'task-empty';
-    empty.innerHTML = '<strong>No tasks yet</strong>Add one with the + button or write to tasks.json.';
+    empty.className = 'pempty';
+    empty.innerHTML = '<strong>No providers yet</strong>Edit providers.json or use the tray menu.';
     list.appendChild(empty);
     return;
   }
-
-  const order = { running: 0, queued: 1, failed: 2, done: 3 };
-  const sorted = tasksCache.slice().sort((a, b) => {
-    const oa = order[a.status] ?? 9;
-    const ob = order[b.status] ?? 9;
-    if (oa !== ob) return oa - ob;
-    return (b.startedAt || 0) - (a.startedAt || 0);
-  });
-
-  for (const task of sorted) list.appendChild(renderTask(task));
+  for (const p of providers) list.appendChild(renderProviderCard(p));
 }
 
-function renderTask(task) {
-  const row = document.createElement('div');
-  row.className = `task-row is-${task.status}`;
-  row.dataset.id = task.id;
+function renderProviderCard(p) {
+  const card = document.createElement('div');
+  card.className = 'pcard';
+  card.dataset.id = p.id;
+  card.style.setProperty('--brand', p.color);
 
-  const icon = document.createElement('div');
-  icon.className = `task-icon is-${task.status}`;
-  row.appendChild(icon);
+  const head = document.createElement('div');
+  head.className = 'pcard-head';
+  head.innerHTML = `
+    <div class="pcard-icon">${svgIcon(p.iconKey)}</div>
+    <div class="pcard-name">${escape(p.name)}</div>
+    ${p.plan ? `<div class="pcard-plan">${escape(p.plan)}</div>` : ''}
+  `;
+  card.appendChild(head);
 
-  const body = document.createElement('div');
-  body.className = 'task-body';
-  const title = document.createElement('div');
-  title.className = 'task-title';
-  title.textContent = task.title;
-  body.appendChild(title);
-
-  const sub = document.createElement('div');
-  sub.className = 'task-sub';
-  sub.textContent = subFor(task);
-  body.appendChild(sub);
-  row.appendChild(body);
-
-  const actions = document.createElement('div');
-  actions.className = 'task-actions';
-  if (task.status === 'running' || task.status === 'queued') {
-    const doneBtn = document.createElement('button');
-    doneBtn.className = 'task-act';
-    doneBtn.title = 'Mark as done';
-    doneBtn.textContent = '✓';
-    doneBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      window.winbar?.updateTask(task.id, { status: 'done' });
-    });
-    actions.appendChild(doneBtn);
+  for (const m of p.metrics) {
+    card.appendChild(renderMetric(m, p));
   }
-  const delBtn = document.createElement('button');
-  delBtn.className = 'task-act';
-  delBtn.title = 'Remove';
-  delBtn.textContent = '×';
-  delBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    window.winbar?.removeTask(task.id);
-  });
-  actions.appendChild(delBtn);
-  row.appendChild(actions);
 
+  return card;
+}
+
+function renderMetric(m, p) {
+  const row = document.createElement('div');
+  row.className = 'pmetric';
+  const pct = typeof m.percentLeft === 'number' ? m.percentLeft : null;
+  const isLow = pct != null && pct <= 15;
+  const isWarn = pct != null && pct > 15 && pct <= 35;
+  const fillClass = isLow ? 'is-low' : isWarn ? 'is-warn' : '';
+
+  row.innerHTML = `
+    <div class="pmetric-row">
+      <span class="pmetric-label">${escape(m.label)}</span>
+      <span class="pmetric-val">${escape(fmtMetricRight(m))}</span>
+    </div>
+    ${pct != null ? `
+      <div class="pmetric-bar">
+        <div class="pmetric-fill ${fillClass}" style="width: ${pct}%"></div>
+      </div>
+    ` : ''}
+    ${m.resetsAt ? `<div class="pmetric-reset">Resets in ${escape(fmtReset(m.resetsAt))}</div>` : ''}
+  `;
   return row;
 }
 
-function subFor(task) {
-  const parts = [];
-  if (task.source && task.source !== 'manual') parts.push(task.source);
-  if (task.status === 'running' && task.startedAt) {
-    parts.push(`for ${formatDuration(Date.now() - task.startedAt)}`);
-  } else if ((task.status === 'done' || task.status === 'failed') && task.finishedAt) {
-    parts.push(timeAgo(task.finishedAt));
-  } else if (task.status === 'queued') {
-    parts.push('waiting');
-  }
-  return parts.join(' · ');
+function escape(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
 }
 
-function formatDuration(ms) {
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`;
-  return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+function scrollToProvider(id) {
+  const el = $(`.pcard[data-id="${id}"]`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
-
-function timeAgo(ts) {
-  const s = Math.floor((Date.now() - ts) / 1000);
-  if (s < 5) return 'just now';
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
-}
-
-function updateStatusDot() {
-  const c = counts();
-  for (const el of $$('.status-dot')) {
-    el.classList.remove('is-running', 'is-failed', 'is-queued');
-    if (c.running > 0) el.classList.add('is-running');
-    else if (c.failed > 0) el.classList.add('is-failed');
-    else if (c.queued > 0) el.classList.add('is-queued');
-  }
-}
-
-setInterval(() => {
-  if (tasksCache.some((t) => t.status === 'running')) renderExpanded();
-}, 1000);
 
 /* ---------- Expand / collapse ---------- */
 async function setExpanded(next) {
@@ -191,46 +212,19 @@ async function setExpanded(next) {
 }
 
 document.addEventListener('click', (e) => {
-  if (e.target.closest('#add-modal')) return;
   if (e.target.closest('.head-btn')) return;
-  if (e.target.closest('.task-actions')) return;
   if (!expanded && e.target.closest('#collapsed-view')) {
     setExpanded(true);
-  } else if (expanded && e.target.closest('#expanded-view') && !e.target.closest('.task-row')) {
-    /* clicking on header area but not buttons does nothing */
   }
 });
 
 $('#btn-collapse').addEventListener('click', () => setExpanded(false));
-$('#btn-clear').addEventListener('click', () => window.winbar?.clearDoneTasks());
-$('#btn-open-file').addEventListener('click', () => window.winbar?.openTasksFile());
-$('#btn-add').addEventListener('click', () => openAddModal());
+$('#btn-open-file').addEventListener('click', () => window.winbar?.openProvidersFile());
+$('#btn-position').addEventListener('click', async () => {
+  const next = settings.position === 'bottom' ? 'top' : 'bottom';
+  await window.winbar?.setSettings({ position: next });
+});
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    if (!$('#add-modal').hidden) closeAddModal();
-    else if (expanded) setExpanded(false);
-  }
-});
-
-/* ---------- Add task modal ---------- */
-const addModal = $('#add-modal');
-const addTitle = $('#add-title');
-function openAddModal() {
-  addModal.hidden = false;
-  setTimeout(() => addTitle.focus(), 30);
-}
-function closeAddModal() {
-  addModal.hidden = true;
-  addTitle.value = '';
-}
-$('#add-cancel').addEventListener('click', closeAddModal);
-$('#add-confirm').addEventListener('click', () => {
-  const t = addTitle.value.trim();
-  if (!t) { closeAddModal(); return; }
-  window.winbar?.addTask({ title: t, status: 'running', source: 'notch' });
-  closeAddModal();
-});
-addTitle.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') $('#add-confirm').click();
+  if (e.key === 'Escape' && expanded) setExpanded(false);
 });
