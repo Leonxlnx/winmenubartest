@@ -5,25 +5,42 @@ const {
 const path = require('path');
 const os = require('os');
 const { loadSettings, saveSettings } = require('./settings');
-const tasks = require('./tasks');
+const providers = require('./providers');
 
 let mainWindow = null;
 let tray = null;
 let currentSettings = loadSettings();
 let isExpanded = false;
+let lastCollapsedWidth = 220;
 
-function computeBounds(settings, expanded) {
+function computeCollapsedWidth(count) {
+  const s = currentSettings;
+  const w = s.collapsedPadX * 2 + count * s.collapsedIconSize + Math.max(0, count - 1) * s.collapsedGap;
+  return Math.max(120, w);
+}
+
+function computeBounds(expanded) {
   const display = screen.getPrimaryDisplay();
-  const sw = display.workAreaSize.width;
-  const w = expanded ? settings.expandedWidth : settings.collapsedWidth;
-  const h = expanded ? settings.expandedMaxHeight : settings.collapsedHeight;
-  const x = Math.round((sw - w) / 2);
-  const y = settings.topOffset != null ? settings.topOffset : 4;
+  const work = display.workArea;
+  const sw = work.width;
+  const sh = work.height;
+  const swLeft = work.x;
+  const swTop = work.y;
+  const w = expanded ? currentSettings.expandedWidth : lastCollapsedWidth;
+  const h = expanded ? currentSettings.expandedMaxHeight : currentSettings.collapsedHeight;
+  const x = swLeft + Math.round((sw - w) / 2);
+  let y;
+  if (currentSettings.position === 'bottom') {
+    y = swTop + sh - h - currentSettings.bottomOffset;
+  } else {
+    y = swTop + currentSettings.topOffset;
+  }
   return { x, y, width: w, height: h };
 }
 
 function createWindow() {
-  const bounds = computeBounds(currentSettings, false);
+  lastCollapsedWidth = computeCollapsedWidth(providers.list().length || 1);
+  const bounds = computeBounds(false);
 
   mainWindow = new BrowserWindow({
     ...bounds,
@@ -59,7 +76,7 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     mainWindow.webContents.send('settings:loaded', currentSettings);
-    mainWindow.webContents.send('tasks:loaded', tasks.list());
+    mainWindow.webContents.send('providers:loaded', providers.list());
   });
 
   screen.on('display-metrics-changed', () => applyBounds());
@@ -68,8 +85,7 @@ function createWindow() {
 
 function applyBounds() {
   if (!mainWindow) return;
-  const bounds = computeBounds(currentSettings, isExpanded);
-  mainWindow.setBounds(bounds, true);
+  mainWindow.setBounds(computeBounds(isExpanded), true);
 }
 
 function applyWindowFlags() {
@@ -90,6 +106,7 @@ ipcMain.handle('settings:get', () => currentSettings);
 ipcMain.handle('settings:set', (_e, patch) => {
   currentSettings = { ...currentSettings, ...patch };
   saveSettings(currentSettings);
+  lastCollapsedWidth = computeCollapsedWidth(providers.list().length || 1);
   applyBounds();
   applyWindowFlags();
   if (mainWindow) mainWindow.webContents.send('settings:loaded', currentSettings);
@@ -104,23 +121,24 @@ ipcMain.handle('settings:reset', () => {
   return currentSettings;
 });
 
-/* ---------- IPC: expanded state ---------- */
+/* ---------- IPC: expanded ---------- */
 ipcMain.handle('notch:setExpanded', (_e, expanded) => {
   isExpanded = !!expanded;
   applyBounds();
   return isExpanded;
 });
 
-/* ---------- IPC: tasks ---------- */
-ipcMain.handle('tasks:list', () => tasks.list());
-ipcMain.handle('tasks:add', (_e, t) => tasks.add(t));
-ipcMain.handle('tasks:update', (_e, id, patch) => tasks.update(id, patch));
-ipcMain.handle('tasks:remove', (_e, id) => tasks.remove(id));
-ipcMain.handle('tasks:clearDone', () => tasks.clearDone());
-ipcMain.handle('tasks:openFile', () => shell.openPath(tasks.filePath()));
+/* ---------- IPC: providers ---------- */
+ipcMain.handle('providers:list', () => providers.list());
+ipcMain.handle('providers:upsert', (_e, p) => providers.upsert(p));
+ipcMain.handle('providers:remove', (_e, id) => providers.remove(id));
+ipcMain.handle('providers:reset', () => providers.reset());
+ipcMain.handle('providers:openFile', () => shell.openPath(providers.filePath()));
 
-tasks.onChange((list) => {
-  if (mainWindow) mainWindow.webContents.send('tasks:loaded', list);
+providers.onChange((list) => {
+  lastCollapsedWidth = computeCollapsedWidth(list.length || 1);
+  if (!isExpanded) applyBounds();
+  if (mainWindow) mainWindow.webContents.send('providers:loaded', list);
 });
 
 /* ---------- IPC: system ---------- */
@@ -130,7 +148,7 @@ ipcMain.handle('system:info', () => ({
   platform: process.platform,
   release: os.release(),
   electronVersion: process.versions.electron,
-  tasksFile: tasks.filePath()
+  providersFile: providers.filePath()
 }));
 
 ipcMain.handle('app:quit', () => app.quit());
@@ -162,23 +180,23 @@ function createTray() {
   if (tray) return;
   try {
     tray = new Tray(buildTrayIcon());
-    tray.setToolTip('WinMenuBar — Codex Notch');
+    tray.setToolTip('WinUsage — AI quota notch');
     const menu = Menu.buildFromTemplate([
       { label: 'Show / hide notch', click: () => {
           if (!mainWindow) return;
           if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.show();
         }},
-      { label: 'Add demo task', click: () => {
-          tasks.add({
-            title: 'New task ' + new Date().toLocaleTimeString(),
-            status: 'running',
-            source: 'tray'
-          });
+      { label: 'Toggle position (top / bottom)', click: () => {
+          const next = currentSettings.position === 'bottom' ? 'top' : 'bottom';
+          currentSettings = { ...currentSettings, position: next };
+          saveSettings(currentSettings);
+          applyBounds();
+          if (mainWindow) mainWindow.webContents.send('settings:loaded', currentSettings);
         }},
-      { label: 'Open tasks.json', click: () => shell.openPath(tasks.filePath()) },
-      { label: 'Clear finished tasks', click: () => tasks.clearDone() },
+      { label: 'Open providers.json', click: () => shell.openPath(providers.filePath()) },
+      { label: 'Reset providers', click: () => providers.reset() },
       { type: 'separator' },
-      { label: 'Quit WinMenuBar', click: () => app.quit() }
+      { label: 'Quit WinUsage', click: () => app.quit() }
     ]);
     tray.setContextMenu(menu);
     tray.on('click', () => {
@@ -193,10 +211,9 @@ function createTray() {
 function registerShortcuts() {
   globalShortcut.register('Control+Alt+B', () => {
     if (!mainWindow) return;
-    if (mainWindow.isVisible()) mainWindow.hide();
-    else mainWindow.show();
+    if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.show();
   });
-  globalShortcut.register('Control+Alt+T', () => {
+  globalShortcut.register('Control+Alt+U', () => {
     if (!mainWindow) return;
     mainWindow.show();
     mainWindow.webContents.send('notch:toggle');
@@ -213,7 +230,7 @@ if (!app.requestSingleInstanceLock()) {
     if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
   });
   app.whenReady().then(() => {
-    tasks.init(app.getPath('userData'));
+    providers.init(app.getPath('userData'));
     createWindow();
     registerShortcuts();
     createTray();

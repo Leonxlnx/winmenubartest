@@ -6,21 +6,14 @@ contextBridge.exposeInMainWorld('winbar', {
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
   resetSettings: () => ipcRenderer.invoke('settings:reset'),
   setExpanded: (expanded) => ipcRenderer.invoke('notch:setExpanded', expanded),
-  listTasks: () => ipcRenderer.invoke('tasks:list'),
-  addTask: (t) => ipcRenderer.invoke('tasks:add', t),
-  updateTask: (id, patch) => ipcRenderer.invoke('tasks:update', id, patch),
-  removeTask: (id) => ipcRenderer.invoke('tasks:remove', id),
-  clearDoneTasks: () => ipcRenderer.invoke('tasks:clearDone'),
-  openTasksFile: () => ipcRenderer.invoke('tasks:openFile'),
+  listProviders: () => ipcRenderer.invoke('providers:list'),
+  upsertProvider: (p) => ipcRenderer.invoke('providers:upsert', p),
+  removeProvider: (id) => ipcRenderer.invoke('providers:remove', id),
+  resetProviders: () => ipcRenderer.invoke('providers:reset'),
+  openProvidersFile: () => ipcRenderer.invoke('providers:openFile'),
   quit: () => ipcRenderer.invoke('app:quit'),
   openExternal: (url) => ipcRenderer.invoke('app:openExternal', url),
-  onSettings: (cb) => {
-    ipcRenderer.on('settings:loaded', (_e, settings) => cb(settings));
-  },
-  onTasks: (cb) => {
-    ipcRenderer.on('tasks:loaded', (_e, list) => cb(list));
-  },
-  onNotchToggle: (cb) => {
-    ipcRenderer.on('notch:toggle', () => cb());
-  }
+  onSettings: (cb) => { ipcRenderer.on('settings:loaded', (_e, settings) => cb(settings)); },
+  onProviders: (cb) => { ipcRenderer.on('providers:loaded', (_e, list) => cb(list)); },
+  onNotchToggle: (cb) => { ipcRenderer.on('notch:toggle', () => cb()); }
 });

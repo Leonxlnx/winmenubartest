@@ -3,19 +3,23 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULTS = {
-  collapsedWidth: 200,
-  collapsedHeight: 28,
-  expandedWidth: 420,
-  expandedMaxHeight: 320,
-  topOffset: 4,
-  cornerRadius: 14,
+  collapsedIconSize: 22,
+  collapsedGap: 6,
+  collapsedPadX: 12,
+  collapsedHeight: 32,
+  expandedWidth: 360,
+  expandedMaxHeight: 420,
+  position: 'top',
+  topOffset: 6,
+  bottomOffset: 8,
+  cornerRadius: 16,
   theme: 'dark',
   accent: '#0a84ff',
   fontSize: 12,
-  showClock: true,
-  showStatusDot: true,
   alwaysOnTop: true,
-  showOnAllWorkspaces: true
+  showOnAllWorkspaces: true,
+  showLabels: false,
+  pulseLow: true
 };
 
 function settingsPath() {
