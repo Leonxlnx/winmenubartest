@@ -193,103 +193,46 @@ function renderExpanded() {
   list.innerHTML = '';
   const providers = snapshot.providers || [];
 
-  setStatusBadge();
-
   if (!snapshot.ok) {
-    list.appendChild(renderEmpty(
-      'OpenUsage offline',
-      `Couldn't reach <code>${escapeHtml(settings?.apiBaseUrl || 'http://127.0.0.1:6736')}</code>. Start OpenUsage on your Mac and the notch will populate.`
-    ));
+    list.appendChild(renderEmpty('OpenUsage offline', 'Start OpenUsage to populate.'));
     return;
   }
   if (snapshot.empty || !providers.length) {
-    list.appendChild(renderEmpty('No data yet', 'OpenUsage is reachable but hasn\'t returned any provider snapshots yet.'));
+    list.appendChild(renderEmpty('No data yet', 'Waiting for OpenUsage.'));
     return;
   }
-  for (const p of providers) list.appendChild(renderProviderCard(p));
+  for (const p of providers) list.appendChild(renderProviderRow(p));
 }
 
-function setStatusBadge() {
-  const el = $('#head-status');
-  if (!el) return;
-  if (!snapshot.ok) { el.textContent = 'offline'; el.className = 'head-status is-bad'; return; }
-  if (snapshot.demo) { el.textContent = 'demo'; el.className = 'head-status is-mute'; return; }
-  if (snapshot.empty) { el.textContent = 'no data'; el.className = 'head-status is-mute'; return; }
-  const at = snapshot.fetchedAt ? new Date(snapshot.fetchedAt) : null;
-  el.textContent = at ? `updated ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'live';
-  el.className = 'head-status is-ok';
-}
-
-function renderEmpty(title, html) {
+function renderEmpty(title, hint) {
   const el = document.createElement('div');
   el.className = 'pempty';
-  el.innerHTML = `<strong>${escapeHtml(title)}</strong>${html}`;
+  el.innerHTML = `<strong>${escapeHtml(title)}</strong>${escapeHtml(hint)}`;
   return el;
 }
 
-function renderProviderCard(p) {
+function renderProviderRow(p) {
   const brand = brandFor(p.providerId);
-  const card = document.createElement('div');
-  card.className = 'pcard';
-  card.dataset.id = p.providerId;
-  card.style.setProperty('--brand', brand.color);
-
-  const head = document.createElement('div');
-  head.className = 'pcard-head';
-  head.innerHTML = `
-    <div class="pcard-icon" data-id="${escapeHtml(p.providerId)}">${svgFor(p.providerId)}</div>
-    <div class="pcard-name">${escapeHtml(p.displayName)}</div>
-    ${p.plan ? `<div class="pcard-plan">${escapeHtml(p.plan)}</div>` : ''}
-  `;
-  head.addEventListener('click', () => window.winbar?.openProviderDashboard(p.providerId));
-  card.appendChild(head);
-
-  if (!p.lines || !p.lines.length) {
-    const e = document.createElement('div');
-    e.className = 'pcard-empty';
-    e.textContent = 'No data';
-    card.appendChild(e);
-  } else {
-    for (const l of p.lines) {
-      if (!l) continue;
-      if (l.type === 'progress') card.appendChild(renderProgressLine(l));
-      else if (l.type === 'text') card.appendChild(renderTextLine(l));
-    }
-  }
-  return card;
-}
-
-function renderProgressLine(l) {
   const row = document.createElement('div');
-  row.className = 'pline pline-progress';
-  const pct = percentLeft(l);
+  row.className = 'prow';
+  row.dataset.id = p.providerId;
+  row.style.setProperty('--brand', brand.color);
+
+  const primary = primaryProgress(p);
+  const pct = percentLeft(primary);
+  const usedPct = pct != null ? 100 - pct : 0;
   const isLow = pct != null && pct <= 15;
   const isWarn = pct != null && pct > 15 && pct <= 35;
   const fillClass = isLow ? 'is-low' : isWarn ? 'is-warn' : '';
-  const usedPct = pct != null ? 100 - pct : 0;
+  const valText = primary ? fmtProgressRight(primary) : '—';
 
   row.innerHTML = `
-    <div class="pline-row">
-      <span class="pline-label">${escapeHtml(l.label)}</span>
-      <span class="pline-val">${escapeHtml(fmtProgressRight(l))}</span>
-    </div>
-    ${pct != null ? `
-      <div class="pline-bar">
-        <div class="pline-fill ${fillClass}" style="width: ${usedPct}%"></div>
-      </div>
-    ` : ''}
-    ${l.resetsAt ? `<div class="pline-reset">Resets in ${escapeHtml(fmtReset(l.resetsAt))}</div>` : ''}
+    <div class="prow-icon" data-id="${escapeHtml(p.providerId)}">${svgFor(p.providerId)}</div>
+    <div class="prow-name">${escapeHtml(p.displayName)}</div>
+    <div class="prow-bar"><div class="prow-fill ${fillClass}" style="width: ${usedPct}%"></div></div>
+    <div class="prow-val">${escapeHtml(valText)}</div>
   `;
-  return row;
-}
-
-function renderTextLine(l) {
-  const row = document.createElement('div');
-  row.className = 'pline pline-text';
-  row.innerHTML = `
-    <span class="pline-label">${escapeHtml(l.label)}</span>
-    <span class="pline-val">${escapeHtml(l.value)}</span>
-  `;
+  row.addEventListener('click', () => window.winbar?.openProviderDashboard(p.providerId));
   return row;
 }
 
@@ -318,11 +261,11 @@ document.addEventListener('click', (e) => {
   if (!expanded && e.target.closest('#collapsed-view')) setExpanded(true);
 });
 
-$('#btn-collapse').addEventListener('click', () => setExpanded(false));
-$('#btn-refresh').addEventListener('click', async () => {
-  $('#btn-refresh').classList.add('is-spinning');
-  await window.winbar?.refreshProviders();
-  setTimeout(() => $('#btn-refresh').classList.remove('is-spinning'), 600);
+/* Click outside row → collapse */
+document.addEventListener('click', (e) => {
+  if (!expanded) return;
+  if (e.target.closest('.prow')) return;
+  if (e.target.closest('#expanded-view')) setExpanded(false);
 });
 
 document.addEventListener('keydown', (e) => {
