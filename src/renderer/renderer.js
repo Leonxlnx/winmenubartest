@@ -7,6 +7,7 @@ const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
 
 let settings = null;
 let snapshot = { ok: true, providers: [], empty: true };
+let activeTools = [];
 let expanded = false;
 let brandMap = {};
 const iconCache = new Map();
@@ -17,7 +18,9 @@ const iconCache = new Map();
   settings = await window.winbar?.getSettings();
   if (settings) applySettings(settings);
   snapshot = (await window.winbar?.listProviders()) || snapshot;
+  activeTools = (await window.winbar?.listActive()) || [];
   await preloadIcons();
+  await preloadActiveIcons();
   renderAll();
 })();
 
@@ -25,6 +28,11 @@ window.winbar?.onSettings((next) => { settings = next; applySettings(next); rend
 window.winbar?.onProviders(async (snap) => {
   snapshot = snap || snapshot;
   await preloadIcons();
+  renderAll();
+});
+window.winbar?.onActive(async (list) => {
+  activeTools = list || [];
+  await preloadActiveIcons();
   renderAll();
 });
 window.winbar?.onNotchToggle(() => setExpanded(!expanded));
@@ -57,6 +65,11 @@ async function loadIcon(key) {
 
 async function preloadIcons() {
   const keys = new Set((snapshot.providers || []).map((p) => p.providerId));
+  await Promise.all(Array.from(keys).map(loadIcon));
+}
+
+async function preloadActiveIcons() {
+  const keys = new Set((activeTools || []).map((t) => t.id));
   await Promise.all(Array.from(keys).map(loadIcon));
 }
 
@@ -137,34 +150,47 @@ function renderCollapsed() {
   const root = $('#collapsed-view');
   root.innerHTML = '';
 
-  const providers = snapshot.providers || [];
-
-  if (!snapshot.ok) {
-    root.innerHTML = `<span class="cdot cdot-warn"></span><span class="ctext">OpenUsage offline</span>`;
-    return;
-  }
-  if (snapshot.empty || !providers.length) {
-    root.innerHTML = `<span class="cdot cdot-mute"></span><span class="ctext">No data yet</span>`;
+  if (!activeTools.length) {
+    root.innerHTML = `<span class="cdot cdot-mute"></span><span class="ctext">Idle</span>`;
     return;
   }
 
-  // Find worst-off provider (lowest % left)
-  let worst = null;
-  let worstPct = 101;
-  for (const p of providers) {
-    const prim = primaryProgress(p);
-    const pct = percentLeft(prim);
-    if (pct != null && pct < worstPct) { worstPct = pct; worst = p; }
-  }
-  const dotClass = worstPct <= 15 ? 'cdot-bad' : worstPct <= 35 ? 'cdot-warn' : 'cdot-ok';
-  const summary = worst
-    ? `${worst.displayName} <span class="cval">${worstPct}%</span>`
-    : `AI Usage <span class="cval">live</span>`;
+  // Pulse dot when AI tools are running
+  const pill = document.createElement('div');
+  pill.className = 'crun';
+  pill.innerHTML = `<span class="cdot cdot-live"></span>`;
 
-  root.innerHTML = `
-    <span class="cdot ${dotClass}"></span>
-    <span class="ctext">${summary}</span>
-  `;
+  // Show up to 4 logos, then "+N" if more
+  const max = 4;
+  const shown = activeTools.slice(0, max);
+  const extra = activeTools.length - shown.length;
+
+  for (const t of shown) {
+    const brand = brandFor(t.id);
+    const chip = document.createElement('span');
+    chip.className = 'cchip';
+    chip.dataset.id = t.id;
+    chip.style.setProperty('--brand', brand.color);
+    chip.innerHTML = svgFor(t.id);
+    chip.title = t.name;
+    pill.appendChild(chip);
+  }
+  if (extra > 0) {
+    const more = document.createElement('span');
+    more.className = 'cmore';
+    more.textContent = `+${extra}`;
+    pill.appendChild(more);
+  }
+
+  // Final label
+  const label = document.createElement('span');
+  label.className = 'ctext';
+  label.textContent = activeTools.length === 1
+    ? `${activeTools[0].name} active`
+    : `${activeTools.length} AI active`;
+  pill.appendChild(label);
+
+  root.appendChild(pill);
 }
 
 function renderCollapsedIcon(p) {

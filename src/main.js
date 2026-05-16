@@ -166,6 +166,7 @@ ipcMain.handle('providers:refresh', async () => {
   await openusage.fetchAll();
   return openusage.snapshot();
 });
+ipcMain.handle('active:list', () => processes.snapshot());
 ipcMain.handle('providers:openDashboard', (_e, providerId) => {
   const map = {
     codex: 'https://chatgpt.com/codex/settings/usage',
@@ -253,7 +254,7 @@ function registerShortcuts() {
   globalShortcut.register('Control+Alt+R', () => openusage.fetchAll());
 }
 
-app.on('will-quit', () => { globalShortcut.unregisterAll(); openusage.stop(); });
+app.on('will-quit', () => { globalShortcut.unregisterAll(); openusage.stop(); processes.stop(); });
 app.on('window-all-closed', () => app.quit());
 
 if (!app.requestSingleInstanceLock()) {
@@ -273,6 +274,8 @@ if (!app.requestSingleInstanceLock()) {
       sendSnapshot();
     });
     openusage.start();
+    processes.onChange((active) => sendActive());
+    processes.start(6000);
     createWindow();
     registerShortcuts();
     createTray();
