@@ -15,7 +15,23 @@
 
     <!-- Expanded: provider rows -->
     <div class="expanded" id="expanded-view">
+      <button class="exp-settings" id="btn-settings" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" class="ic">
+          <circle cx="6" cy="12" r="1.4" fill="currentColor"/>
+          <circle cx="12" cy="12" r="1.4" fill="currentColor"/>
+          <circle cx="18" cy="12" r="1.4" fill="currentColor"/>
+        </svg>
+      </button>
       <div class="provider-list" id="provider-list"></div>
+    </div>
+
+    <!-- Settings panel -->
+    <div class="settings-panel" id="settings-panel" hidden>
+      <div class="sp-head">
+        <strong>Show in notch</strong>
+        <button class="sp-close" id="btn-settings-close" aria-label="Close">×</button>
+      </div>
+      <div class="sp-list" id="settings-list"></div>
     </div>
   </div>
 

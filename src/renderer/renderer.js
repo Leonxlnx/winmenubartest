@@ -310,24 +310,82 @@ document.addEventListener('click', (e) => {
 /* ---------- Click handling ---------- */
 const collapsedEl = $('#collapsed-view');
 const expandedEl = $('#expanded-view');
+const settingsPanel = $('#settings-panel');
 
-// Use mousedown for instant response, attach directly to elements
 collapsedEl.addEventListener('mousedown', (e) => {
   e.preventDefault();
   e.stopPropagation();
-  console.log('[click] collapsed view clicked, expanding...');
   if (!expanded) setExpanded(true);
 });
 
 expandedEl.addEventListener('mousedown', (e) => {
-  // Allow clicks on rows to bubble for dashboard open
   if (e.target.closest('.prow')) return;
+  if (e.target.closest('.exp-settings')) return;
   e.preventDefault();
   e.stopPropagation();
-  console.log('[click] expanded background clicked, collapsing...');
-  setExpanded(false);
+  if (settingsPanel.hidden !== false) {
+    setExpanded(false);
+  }
 });
 
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && expanded) setExpanded(false);
+$('#btn-settings').addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleSettings();
 });
+$('#btn-settings-close').addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeSettings();
+});
+
+/* ---------- Settings panel ---------- */
+const TOOLS = [
+  { id: 'codex',       name: 'Codex',       hint: 'CLI' },
+  { id: 'claude',      name: 'Claude Code', hint: 'CLI' },
+  { id: 'cursor',      name: 'Cursor',      hint: 'GUI' },
+  { id: 'windsurf',    name: 'Windsurf',    hint: 'GUI' },
+  { id: 'antigravity', name: 'Antigravity', hint: 'GUI' }
+];
+
+function renderSettings() {
+  const list = $('#settings-list');
+  list.innerHTML = '';
+  const enabled = new Set(settings?.enabledProviders || []);
+  for (const t of TOOLS) {
+    const brand = brandFor(t.id);
+    const row = document.createElement('label');
+    row.className = 'sp-row';
+    row.style.setProperty('--brand', brand.color);
+    row.innerHTML = `
+      <span class="sp-icon">${svgFor(t.id)}</span>
+      <span class="sp-name">${escapeHtml(t.name)}</span>
+      <span class="sp-hint">${escapeHtml(t.hint)}</span>
+      <span class="sp-toggle ${enabled.has(t.id) ? 'is-on' : ''}"><span class="sp-thumb"></span></span>
+    `;
+    row.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const next = new Set(enabled);
+      if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
+      await window.winbar?.setSettings({ enabledProviders: Array.from(next) });
+    });
+    list.appendChild(row);
+  }
+}
+
+function toggleSettings() {
+  if (settingsPanel.hidden) {
+    renderSettings();
+    settingsPanel.hidden = false;
+  } else {
+    closeSettings();
+  }
+}
+function closeSettings() { settingsPanel.hidden = true; }
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (!settingsPanel.hidden) closeSettings();
+    else if (expanded) setExpanded(false);
+  }
+});
+
+window.winbar?.onSettings(() => { if (!settingsPanel.hidden) renderSettings(); });

@@ -16,11 +16,21 @@ let lastSnapshot = openusage.snapshot();
 let resizeTween = null;
 
 /* ---------- Window bounds (docked to top edge) ---------- */
+function computeExpandedHeight() {
+  // Dynamic: row count drives height so no empty bottom space
+  const enabled = currentSettings.enabledProviders || [];
+  const rowH = 52; // 30px chip + 10/10 padding + 2 gap
+  const padding = 22;
+  const minH = 80;
+  const maxH = currentSettings.expandedMaxHeight || 360;
+  return Math.min(maxH, Math.max(minH, padding + enabled.length * rowH));
+}
+
 function computeBounds(expanded) {
   const display = screen.getPrimaryDisplay();
   const work = display.workArea;
   const w = expanded ? currentSettings.expandedWidth : currentSettings.collapsedWidth;
-  const h = expanded ? currentSettings.expandedMaxHeight : currentSettings.collapsedHeight;
+  const h = expanded ? computeExpandedHeight() : currentSettings.collapsedHeight;
   const x = work.x + Math.round((work.width - w) / 2);
   const y = work.y;
   return { x, y, width: w, height: h };
