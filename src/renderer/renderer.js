@@ -300,9 +300,13 @@ function toggleSettings() {
 /* ---------- Click & hover wiring ---------- */
 document.addEventListener('click', (e) => {
   if (e.target.closest('#settings-panel')) return;
-  if (e.target.closest('#btn-settings')) { toggleSettings(); closeMenu(); return; }
+  if (e.target.closest('#btn-settings')) {
+    toggleSettings();
+    closeMenu();
+    return;
+  }
   const target = e.target.closest('[data-menu], .item');
-  if (!target || target.id === 'btn-settings') {
+  if (!target) {
     closeMenu();
     closeSettings();
     return;
