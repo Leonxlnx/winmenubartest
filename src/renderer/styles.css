@@ -119,9 +119,15 @@ body.state-expanded .collapsed { display: none; }
   flex-shrink: 0;
   -webkit-app-region: no-drag;
   cursor: default;
-  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 220ms ease;
 }
-.cicon:hover { transform: translateY(-1px) scale(1.05); }
+.cicon:hover {
+  transform: translateY(-1px) scale(1.08);
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.4));
+}
+.cicon:active { transform: scale(0.94); transition-duration: 80ms; }
 
 .cicon .ring {
   position: absolute;
